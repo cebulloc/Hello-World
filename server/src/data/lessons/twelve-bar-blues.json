@@ -1,0 +1,65 @@
+{
+  "id": "twelve-bar-blues",
+  "title": "12-bar blues",
+  "summary": "The most common chord progression in popular music. Learn it once, use it forever.",
+  "track": "rhythm",
+  "difficulty": 2,
+  "orderIndex": 1,
+  "prerequisites": ["power-chords"],
+  "theoryTags": ["chords", "rhythm", "progression", "blues"],
+  "xpReward": 100,
+  "steps": [
+    {
+      "kind": "prose",
+      "title": "The form",
+      "body": "Twelve bars built from three chords: I, IV, V. In A: A7, D7, E7. The bars go:\n\nI I I I  | IV IV I I | V IV I I (V)\n\nThe last bar is the 'turnaround' -- a V chord that pulls you back to the top of the loop. Once you can hear and play this form, you can sit in on a million songs."
+    },
+    {
+      "kind": "fretboard",
+      "title": "A7 (open)",
+      "body": "The dominant 7 chord: major triad + b7 (G). The G clashing with the C# (the 3rd) creates the tritone that gives the chord its blues 'pull'.",
+      "diagram": {
+        "kind": "chord",
+        "name": "A7",
+        "frets": [-1, 0, 2, 0, 2, 0],
+        "fingers": [0, 0, 2, 0, 3, 0]
+      }
+    },
+    {
+      "kind": "fretboard",
+      "title": "D7",
+      "body": "",
+      "diagram": {
+        "kind": "chord",
+        "name": "D7",
+        "frets": [-1, -1, 0, 2, 1, 2],
+        "fingers": [0, 0, 0, 2, 1, 3]
+      }
+    },
+    {
+      "kind": "fretboard",
+      "title": "E7",
+      "body": "",
+      "diagram": {
+        "kind": "chord",
+        "name": "E7",
+        "frets": [0, 2, 0, 1, 0, 0],
+        "fingers": [0, 2, 0, 1, 0, 0]
+      }
+    },
+    {
+      "kind": "rhythm",
+      "title": "Shuffle feel (down-up-down-up swing)",
+      "pattern": ["X", ".", "X", "X", ".", "X", "X", "."],
+      "tempo": 80,
+      "bars": 4
+    },
+    {
+      "kind": "chordTrainer",
+      "title": "Cycle the form",
+      "chords": ["A7", "A7", "A7", "A7", "D7", "D7", "A7", "A7", "E7", "D7", "A7", "E7"],
+      "tempo": 70,
+      "bars": 12
+    }
+  ]
+}

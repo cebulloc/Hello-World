@@ -1,0 +1,60 @@
+{
+  "id": "building-major-chords",
+  "title": "Building major chords",
+  "summary": "Stack a major 3rd and a perfect 5th from any root and you've got a major triad.",
+  "track": "theory",
+  "difficulty": 2,
+  "orderIndex": 2,
+  "prerequisites": ["understanding-intervals"],
+  "theoryTags": ["chords", "triads", "intervals", "theory"],
+  "xpReward": 90,
+  "steps": [
+    {
+      "kind": "prose",
+      "title": "Triads from intervals",
+      "body": "A major triad is built by stacking a major 3rd (4 semitones) and then a minor 3rd (3 semitones) above the root. From C: C + M3 = E, E + m3 = G. So C major = C E G. The same recipe works from any root."
+    },
+    {
+      "kind": "fretboard",
+      "title": "C major as three notes",
+      "body": "C E G shown on the fretboard. Notice the same three pitch classes show up everywhere -- there is no single 'C chord shape', just the same three notes voiced in different places.",
+      "diagram": {
+        "kind": "notes",
+        "notes": ["C", "E", "G"]
+      }
+    },
+    {
+      "kind": "prose",
+      "title": "Major vs minor in one note",
+      "body": "If you flat the 3rd (M3 -> m3) the chord becomes minor. From C: C Eb G. That single note swap is the entire reason a chord sounds 'happy' or 'sad'. Try it on the fretboard -- pick any C major shape, lower the E by one fret, and listen."
+    },
+    {
+      "kind": "fretboard",
+      "title": "C major chord shape",
+      "body": "The standard open C: 5th fret-3 on string 5, fret-2 on string 4, open on string 3, fret-1 on string 2, open on string 1.",
+      "diagram": {
+        "kind": "chord",
+        "name": "C",
+        "frets": [-1, 3, 2, 0, 1, 0],
+        "fingers": [0, 3, 2, 0, 1, 0]
+      }
+    },
+    {
+      "kind": "fretboard",
+      "title": "G major chord shape",
+      "body": "Bigger reach but the recipe is the same: G B D, repeated across the strings.",
+      "diagram": {
+        "kind": "chord",
+        "name": "G",
+        "frets": [3, 2, 0, 0, 0, 3],
+        "fingers": [3, 2, 0, 0, 0, 4]
+      }
+    },
+    {
+      "kind": "intervalQuiz",
+      "title": "Identify chord intervals",
+      "questions": 6,
+      "pool": ["m3", "M3", "P5"]
+    }
+  ]
+}

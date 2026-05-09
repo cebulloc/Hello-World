@@ -1,0 +1,44 @@
+{
+  "id": "understanding-intervals",
+  "title": "Understanding intervals",
+  "summary": "The distance between two notes is the building block of every chord and scale.",
+  "track": "theory",
+  "difficulty": 2,
+  "orderIndex": 1,
+  "prerequisites": [],
+  "theoryTags": ["intervals", "ear", "theory"],
+  "xpReward": 90,
+  "steps": [
+    {
+      "kind": "prose",
+      "title": "What is an interval?",
+      "body": "An interval is the distance between two pitches, measured in semitones. The fretboard makes this physical: 1 fret = 1 semitone. Two notes 7 frets apart are a perfect 5th; two notes 4 frets apart are a major 3rd; the rest of theory is built on naming and combining these."
+    },
+    {
+      "kind": "fretboard",
+      "title": "Octave shapes",
+      "body": "The same note, 12 semitones apart. The most useful shape: skip a string and move 2 frets up (string 6 -> string 4). Use it to find any root note in a hurry.",
+      "diagram": {
+        "kind": "notes",
+        "notes": ["A"]
+      }
+    },
+    {
+      "kind": "prose",
+      "title": "The big six",
+      "body": "Memorize these by feel:\n- m3 (3 semis) -- minor third, the 'sad' interval\n- M3 (4 semis) -- major third, the 'happy' interval\n- P4 (5 semis) -- perfect fourth, like 'Here Comes the Bride'\n- P5 (7 semis) -- perfect fifth, like the Star Wars opening\n- M6 (9 semis) -- major sixth, like NBC's chime\n- m7 (10 semis) -- minor seventh, like the Star Trek theme."
+    },
+    {
+      "kind": "intervalQuiz",
+      "title": "Visual interval ID",
+      "questions": 8,
+      "pool": ["m3", "M3", "P4", "P5", "M6", "m7"]
+    },
+    {
+      "kind": "earQuiz",
+      "title": "Hear the interval",
+      "questions": 6,
+      "pool": ["m3", "M3", "P4", "P5"]
+    }
+  ]
+}
