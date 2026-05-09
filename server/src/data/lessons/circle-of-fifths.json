@@ -1,0 +1,64 @@
+{
+  "id": "circle-of-fifths",
+  "title": "The circle of fifths",
+  "summary": "How keys relate to each other -- and why that explains 90% of pop progressions.",
+  "track": "theory",
+  "difficulty": 3,
+  "orderIndex": 6,
+  "prerequisites": ["understanding-intervals", "building-major-chords"],
+  "theoryTags": ["theory", "intervals", "key-signatures", "progressions"],
+  "xpReward": 110,
+  "steps": [
+    {
+      "kind": "prose",
+      "title": "Stack twelve fifths and you go around the world",
+      "body": "Start on C. Go up a perfect 5th: G. Up another 5th: D. Keep going (A, E, B, F#, C#, G#/Ab, Eb, Bb, F) and after twelve jumps you're back at C. That loop is the circle of fifths.\n\nWhy memorize it? Because the order tracks key signatures (each step adds one sharp or removes one flat), it predicts which chords sound 'related', and the most common chord progressions in Western music move by fifths."
+    },
+    {
+      "kind": "prose",
+      "title": "Reading the circle",
+      "body": "Going clockwise (up by 5ths) adds sharps:\n\nC (0) -> G (1#) -> D (2#) -> A (3#) -> E (4#) -> B (5#) -> F# (6#)\n\nGoing counter-clockwise (down by 5ths, or up by 4ths) adds flats:\n\nC (0) -> F (1b) -> Bb (2b) -> Eb (3b) -> Ab (4b) -> Db (5b) -> Gb (6b)\n\nC sits at the top with no sharps or flats. The two enharmonic 'meeting points' at the bottom (F#/Gb) are the same pitch on guitar, just spelled differently."
+    },
+    {
+      "kind": "prose",
+      "title": "Relative minors live across the table",
+      "body": "Every major key shares its key signature with a minor key whose root is a minor 3rd below. C major's relative minor is A minor. G major's is E minor. D's is B minor. F's is D minor. Same notes, same accidentals -- the only thing that changes is which note feels like 'home'.\n\nOn the circle of fifths, the relative minors form an inner ring shifted three positions counter-clockwise from their major counterparts."
+    },
+    {
+      "kind": "fretboard",
+      "title": "A perfect fifth, on the fretboard",
+      "body": "The whole circle is built from one interval. On guitar, a perfect 5th is two frets up and one string up: e.g. string 6 fret 0 (E) and string 5 fret 2 (B). That's the easiest movable shape on the instrument and it's the entire foundation of power chords.",
+      "diagram": {
+        "kind": "notes",
+        "notes": ["E", "B"]
+      }
+    },
+    {
+      "kind": "prose",
+      "title": "Why progressions move by fifths",
+      "body": "The strongest possible chord movement in tonal music is V -> I (a 5th down, or a 4th up). The dominant 7 chord contains the leading tone (the 7th degree) which has a half-step pull to the tonic. Stack two of those movements and you get the ubiquitous ii -> V -> I (e.g. Dm7 -> G7 -> Cmaj7), where each chord is a 5th below the last.\n\nLook at any 12-bar blues, any jazz turnaround, any pop bridge -- the chords are usually walking around the circle of fifths."
+    },
+    {
+      "kind": "prose",
+      "title": "Diatonic chords sit close together",
+      "body": "The seven chords built from any major scale cluster on the circle. For C major (chords: C Dm Em F G Am Bdim) you get F-C-G as three adjacent positions (the IV-I-V), with the relative minors (Dm-Am-Em) just inside. That visual proximity *is* what 'staying in key' means."
+    },
+    {
+      "kind": "intervalQuiz",
+      "title": "Drill the perfect 5th shape",
+      "questions": 6,
+      "pool": ["P4", "P5"]
+    },
+    {
+      "kind": "earQuiz",
+      "title": "Hear the difference: 4ths vs 5ths",
+      "questions": 6,
+      "pool": ["P4", "P5"]
+    },
+    {
+      "kind": "prose",
+      "title": "What to do with this",
+      "body": "Pick a key and write out its diatonic chords. Then play I -> IV -> V -> I (e.g. C -> F -> G -> C). Then try I -> vi -> ii -> V (C -> Am -> Dm -> G). Both are circle-of-fifths motion in disguise. Once you hear it, you'll spot it everywhere -- and you'll be able to predict where a song is going before the next chord lands."
+    }
+  ]
+}

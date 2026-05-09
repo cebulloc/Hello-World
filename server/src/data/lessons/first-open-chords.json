@@ -1,0 +1,70 @@
+{
+  "id": "first-open-chords",
+  "title": "Your first open chords",
+  "summary": "Em, Am, and D -- the three chords that unlock most songs.",
+  "track": "chords",
+  "difficulty": 1,
+  "orderIndex": 1,
+  "prerequisites": [],
+  "theoryTags": ["chords", "open-position", "triads"],
+  "xpReward": 60,
+  "steps": [
+    {
+      "kind": "prose",
+      "title": "What is a chord?",
+      "body": "A chord is three or more notes played together. The most useful chords on guitar live in the first three frets and use open strings -- those are 'open chords'. We'll start with three of the most common: Em, Am, and D."
+    },
+    {
+      "kind": "fretboard",
+      "title": "E minor (Em)",
+      "body": "Press strings 5 and 4 at the 2nd fret with fingers 2 and 3. All six strings ring out. Em is one of the easiest shapes on the guitar; you only fret two notes.",
+      "diagram": {
+        "kind": "chord",
+        "name": "Em",
+        "frets": [0, 2, 2, 0, 0, 0],
+        "fingers": [0, 2, 3, 0, 0, 0]
+      }
+    },
+    {
+      "kind": "fretboard",
+      "title": "A minor (Am)",
+      "body": "Skip string 6 (don't strum it). Use finger 1 on string 2 fret 1, fingers 2 and 3 on strings 4 and 3 at fret 2. The same shape moved up a string is the foundation of many barre chords later on.",
+      "diagram": {
+        "kind": "chord",
+        "name": "Am",
+        "frets": [-1, 0, 2, 2, 1, 0],
+        "fingers": [0, 0, 2, 3, 1, 0]
+      }
+    },
+    {
+      "kind": "fretboard",
+      "title": "D major (D)",
+      "body": "D is small and triangular: skip strings 6 and 5. Finger 1 on string 3 fret 2, finger 2 on string 1 fret 2, finger 3 on string 2 fret 3.",
+      "diagram": {
+        "kind": "chord",
+        "name": "D",
+        "frets": [-1, -1, 0, 2, 3, 2],
+        "fingers": [0, 0, 0, 1, 3, 2]
+      }
+    },
+    {
+      "kind": "prose",
+      "title": "A theory aside",
+      "body": "Em, Am, D are all triads -- root + 3rd + 5th. The minor chords use a flatted 3rd (3 semitones above the root); the major chord uses a regular 3rd (4 semitones). That single note is the difference between 'sad' and 'happy'. We'll explore this in 'Building major chords'."
+    },
+    {
+      "kind": "chordTrainer",
+      "title": "Switch between Em and Am",
+      "chords": ["Em", "Am"],
+      "tempo": 60,
+      "bars": 8
+    },
+    {
+      "kind": "chordTrainer",
+      "title": "Add D to the rotation",
+      "chords": ["Em", "Am", "D"],
+      "tempo": 60,
+      "bars": 12
+    }
+  ]
+}

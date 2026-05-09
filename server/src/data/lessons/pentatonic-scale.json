@@ -1,0 +1,44 @@
+{
+  "id": "pentatonic-scale",
+  "title": "The minor pentatonic scale",
+  "summary": "The five-note scale behind most rock and blues solos.",
+  "track": "scales",
+  "difficulty": 2,
+  "orderIndex": 1,
+  "prerequisites": [],
+  "theoryTags": ["scales", "pentatonic", "intervals"],
+  "xpReward": 80,
+  "steps": [
+    {
+      "kind": "prose",
+      "title": "Five notes, infinite licks",
+      "body": "The minor pentatonic uses only 5 notes per octave: 1, b3, 4, 5, b7. By dropping the 2nd and b6 from natural minor, you remove most of the half-step tension and end up with a scale that 'just works' over minor and dominant chords. Almost every rock and blues solo is built from it."
+    },
+    {
+      "kind": "fretboard",
+      "title": "A minor pentatonic, position 1",
+      "body": "The most-played shape in guitar history. Roots are in orange.",
+      "diagram": {
+        "kind": "scale",
+        "scale": { "root": "A", "name": "minor_pentatonic" }
+      }
+    },
+    {
+      "kind": "scaleExercise",
+      "title": "Run the scale up and down",
+      "scale": { "root": "A", "name": "minor_pentatonic" },
+      "tempo": 80
+    },
+    {
+      "kind": "prose",
+      "title": "Why it works over Am AND A7",
+      "body": "Over Am the chord tones are A C E. The pentatonic supplies all of them, plus D and G as 'tension' tones that resolve naturally. Over A7 (A C# E G) the b3 (C) clashes with C#... and that clash is the blues. The pentatonic intentionally leans into that friction -- which is why bending the b3 up toward the major 3rd is one of the most-used moves on the instrument."
+    },
+    {
+      "kind": "intervalQuiz",
+      "title": "Spot the pentatonic intervals",
+      "questions": 6,
+      "pool": ["m3", "P4", "P5", "m7"]
+    }
+  ]
+}

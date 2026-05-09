@@ -1,0 +1,59 @@
+{
+  "id": "power-chords",
+  "title": "Power chords",
+  "summary": "Two-note chords that drive rock, punk, and metal.",
+  "track": "chords",
+  "difficulty": 2,
+  "orderIndex": 2,
+  "prerequisites": ["first-open-chords"],
+  "theoryTags": ["chords", "intervals", "power-chord"],
+  "xpReward": 70,
+  "steps": [
+    {
+      "kind": "prose",
+      "title": "What's a power chord?",
+      "body": "A power chord is a 'root + 5th' -- a perfect fifth (7 semitones) above the root. Because there's no third, it isn't major or minor. That ambiguity is exactly why it sits well over distorted amps: a major or minor third would clash with the harmonic mush; a fifth doesn't."
+    },
+    {
+      "kind": "fretboard",
+      "title": "E5 (open)",
+      "body": "The open low E + the 2nd fret of A. Just two strings rung out -- mute the rest with your strumming hand.",
+      "diagram": {
+        "kind": "chord",
+        "name": "E5",
+        "frets": [0, 2, -1, -1, -1, -1],
+        "fingers": [0, 2, 0, 0, 0, 0]
+      }
+    },
+    {
+      "kind": "fretboard",
+      "title": "A5 at fret 5",
+      "body": "Same shape, moved up. Root on the 5th-string 5th fret, fifth on the 4th-string 7th fret. This is the canonical movable power chord.",
+      "diagram": {
+        "kind": "chord",
+        "name": "A5",
+        "frets": [-1, 5, 7, -1, -1, -1],
+        "fingers": [0, 1, 3, 0, 0, 0]
+      }
+    },
+    {
+      "kind": "prose",
+      "title": "Why a perfect 5th?",
+      "body": "The interval ratio of a perfect 5th is 3:2 -- the second-most consonant interval after the octave. Two notes a 5th apart reinforce each other harmonically; ramp up the gain and they sound like one big bell instead of two clashing tones."
+    },
+    {
+      "kind": "rhythm",
+      "title": "Eighth-note chug",
+      "pattern": ["X", "X", "X", "X", "X", "X", "X", "X"],
+      "tempo": 80,
+      "bars": 4
+    },
+    {
+      "kind": "chordTrainer",
+      "title": "E5 -> A5 -> D5",
+      "chords": ["E5", "A5", "D5"],
+      "tempo": 80,
+      "bars": 12
+    }
+  ]
+}

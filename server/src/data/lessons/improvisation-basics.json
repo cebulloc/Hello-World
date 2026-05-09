@@ -1,0 +1,44 @@
+{
+  "id": "improvisation-basics",
+  "title": "Improvisation basics",
+  "summary": "Use one scale, target chord tones, and you're soloing.",
+  "track": "improv",
+  "difficulty": 3,
+  "orderIndex": 1,
+  "prerequisites": ["pentatonic-scale", "twelve-bar-blues"],
+  "theoryTags": ["improv", "scales", "intervals", "ear"],
+  "xpReward": 120,
+  "steps": [
+    {
+      "kind": "prose",
+      "title": "The two-step formula",
+      "body": "Step 1: pick a scale that contains most of the notes in the progression. Step 2: aim for chord tones on the strong beats (1 and 3). That's it. You can play almost any pattern between target landings and it will still sound 'in'."
+    },
+    {
+      "kind": "fretboard",
+      "title": "A minor pentatonic over a 12-bar in A",
+      "body": "Same scale as before. Notice how every chord (A7, D7, E7) shares notes with this scale. Try resting on A over A7, on D over D7, and on E (or B = the 5 of E) over E7.",
+      "diagram": {
+        "kind": "scale",
+        "scale": { "root": "A", "name": "minor_pentatonic" }
+      }
+    },
+    {
+      "kind": "scaleExercise",
+      "title": "Phrase the scale, don't run it",
+      "scale": { "root": "A", "name": "minor_pentatonic" },
+      "tempo": 70
+    },
+    {
+      "kind": "prose",
+      "title": "Three rules of thumb",
+      "body": "1. Repeat. A repeated motif sounds intentional, even if the notes are random.\n2. Leave space. The metronome wins if you fill every beat. Land on a note, then breathe.\n3. End on a chord tone. Whatever you played, finish on the root or 5th of the underlying chord and the listener will accept everything that came before."
+    },
+    {
+      "kind": "earQuiz",
+      "title": "Find the chord tones by ear",
+      "questions": 6,
+      "pool": ["m3", "M3", "P5", "m7"]
+    }
+  ]
+}
