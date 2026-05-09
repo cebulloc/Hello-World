@@ -24,12 +24,16 @@ Status legend: [x] shipped in MVP, [~] partial / scaffolded, [ ] planned.
 - [x] Lesson JSON schema and loader
 - [x] Step renderers: prose, fretboard exercise, chord trainer,
       ear-training quiz, rhythm pattern
-- [x] Seven authored lessons:
+- [x] Eleven authored lessons:
   - First open chords
   - Power chords
   - Pentatonic scale (minor)
   - Understanding intervals
   - Building major chords
+  - Triad qualities (major / minor / dim / aug)
+  - Triad shapes on three strings (root / 1st / 2nd inversions)
+  - The CAGED system (five shapes for C major)
+  - The circle of fifths
   - 12-bar blues
   - Improvisation basics
 
@@ -65,8 +69,8 @@ Status legend: [x] shipped in MVP, [~] partial / scaffolded, [ ] planned.
 - [ ] Email/password auth, multi-user
 - [ ] Postgres adapter behind the `db/client.ts` interface
 - [ ] Component test coverage with React Testing Library
-- [ ] More lessons: barre chords, CAGED system, modes deep dive,
-      fingerpicking
+- [ ] More lessons: barre chords, modes deep dive, fingerpicking,
+      chord inversions across all string sets
 - [ ] Polished animation pass (motion curves, scale-pattern traversal)
 - [ ] Pitch detection promoted from optional to a first-class lesson mode
 - [ ] LLM-backed Jam Coach behind a server-side feature flag

@@ -48,4 +48,14 @@ export const OPEN_CHORD_SHAPES: Record<
   E5: { frets: [0, 2, -1, -1, -1, -1], fingers: [0, 2, 0, 0, 0, 0] },
   A5: { frets: [-1, 0, 2, -1, -1, -1], fingers: [0, 0, 2, 0, 0, 0] },
   D5: { frets: [-1, -1, 0, 2, 3, -1], fingers: [0, 0, 0, 1, 3, 0] },
+  // Three-string C major triad inversions on strings 3-1
+  "C (root)": { frets: [-1, -1, -1, 5, 5, 3], fingers: [0, 0, 0, 3, 4, 1] },
+  "C/E": { frets: [-1, -1, -1, 9, 8, 8], fingers: [0, 0, 0, 3, 1, 2] },
+  "C/G": { frets: [-1, -1, -1, 12, 13, 12], fingers: [0, 0, 0, 1, 3, 2] },
+  // CAGED: five voicings of C major
+  "C (C shape)": { frets: [-1, 3, 2, 0, 1, 0], fingers: [0, 3, 2, 0, 1, 0] },
+  "C (A shape)": { frets: [-1, 3, 5, 5, 5, 3], fingers: [0, 1, 2, 3, 4, 1] },
+  "C (G shape)": { frets: [8, 7, 5, 5, 5, 8], fingers: [3, 2, 1, 1, 1, 4] },
+  "C (E shape)": { frets: [8, 10, 10, 9, 8, 8], fingers: [1, 3, 4, 2, 1, 1] },
+  "C (D shape)": { frets: [-1, -1, 10, 12, 13, 12], fingers: [0, 0, 1, 2, 4, 3] },
 };

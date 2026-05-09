@@ -1,0 +1,75 @@
+{
+  "id": "triad-qualities",
+  "title": "The four triad qualities",
+  "summary": "Major, minor, diminished, augmented -- four flavors built from two stacked thirds.",
+  "track": "theory",
+  "difficulty": 2,
+  "orderIndex": 3,
+  "prerequisites": ["building-major-chords"],
+  "theoryTags": ["chords", "triads", "intervals", "theory"],
+  "xpReward": 90,
+  "steps": [
+    {
+      "kind": "prose",
+      "title": "Two stacked thirds, four flavors",
+      "body": "A triad is always built from two thirds stacked on top of each other. Which kind of third you use first, and which one second, decides the chord's character:\n\n- Major  = M3 then m3   ->  1  3  5\n- Minor  = m3 then M3   ->  1 b3  5\n- Dim.   = m3 then m3   ->  1 b3 b5\n- Aug.   = M3 then M3   ->  1  3 #5\n\nThat's it. Every triad in every style of music is one of these four."
+    },
+    {
+      "kind": "fretboard",
+      "title": "C major triad",
+      "body": "C E G. The 5-string open C shape: notice the three pitch classes (C, E, G) repeat on different strings.",
+      "diagram": {
+        "kind": "chord",
+        "name": "C",
+        "frets": [-1, 3, 2, 0, 1, 0],
+        "fingers": [0, 3, 2, 0, 1, 0]
+      }
+    },
+    {
+      "kind": "fretboard",
+      "title": "C minor triad",
+      "body": "C Eb G. Lower the E (string 4 fret 2) by one fret to Eb (fret 1). One single note swap turns happy into sad. Note: this barre voicing is a stretch; the point is to *see* the change, not necessarily to play it cleanly yet.",
+      "diagram": {
+        "kind": "chord",
+        "name": "Cm",
+        "frets": [-1, 3, 5, 5, 4, 3],
+        "fingers": [0, 1, 3, 4, 2, 1]
+      }
+    },
+    {
+      "kind": "fretboard",
+      "title": "C diminished triad",
+      "body": "C Eb Gb. Now flat the 5th as well. Diminished sounds tense and unstable -- it almost demands to resolve to another chord.",
+      "diagram": {
+        "kind": "notes",
+        "notes": ["C", "Eb", "Gb"]
+      }
+    },
+    {
+      "kind": "fretboard",
+      "title": "C augmented triad",
+      "body": "C E G#. Raise the 5th instead. Augmented is symmetrical -- C, E, and G# are all a M3 apart -- which gives it that 'unresolved, floating' quality you hear in jazz turnarounds and movie soundtracks.",
+      "diagram": {
+        "kind": "notes",
+        "notes": ["C", "E", "G#"]
+      }
+    },
+    {
+      "kind": "prose",
+      "title": "Ear it out",
+      "body": "The fastest way to internalize the four qualities is to hear them. Major and minor are easy; diminished is 'the suspense chord'; augmented is 'the dream chord'. The next quiz drills the major/minor 3rd because that's the single interval that flips a triad's identity."
+    },
+    {
+      "kind": "earQuiz",
+      "title": "Major or minor 3rd?",
+      "questions": 8,
+      "pool": ["m3", "M3"]
+    },
+    {
+      "kind": "intervalQuiz",
+      "title": "Spot the chord-defining intervals",
+      "questions": 6,
+      "pool": ["m3", "M3", "P5"]
+    }
+  ]
+}

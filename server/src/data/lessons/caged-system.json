@@ -1,0 +1,96 @@
+{
+  "id": "caged-system",
+  "title": "The CAGED system",
+  "summary": "Five movable shapes that map every major chord across the entire fretboard.",
+  "track": "theory",
+  "difficulty": 3,
+  "orderIndex": 5,
+  "prerequisites": ["building-major-chords", "triad-shapes"],
+  "theoryTags": ["chords", "caged", "fretboard-mapping", "theory"],
+  "xpReward": 110,
+  "steps": [
+    {
+      "kind": "prose",
+      "title": "Five shapes, one fretboard",
+      "body": "CAGED is a system that takes the five open chord shapes you already know -- C, A, G, E, D -- and shows that every major chord on guitar is one of those shapes, just moved up the neck. String the five shapes together and you can play the same chord in five different positions.\n\nWe'll demonstrate with C major: the open C shape *is* the first position. Then we'll trace the same chord up the neck in the A, G, E, and D shapes."
+    },
+    {
+      "kind": "fretboard",
+      "title": "C, in the C shape (open)",
+      "body": "The familiar open C major. Root on string 5 fret 3.",
+      "diagram": {
+        "kind": "chord",
+        "name": "C (C shape)",
+        "frets": [-1, 3, 2, 0, 1, 0],
+        "fingers": [0, 3, 2, 0, 1, 0]
+      }
+    },
+    {
+      "kind": "fretboard",
+      "title": "C, in the A shape",
+      "body": "Take the open A major shape (x02220) and barre it up to fret 3 -- the root climbs from A on string 5 fret 0 to C on string 5 fret 3. This is the same chord, voiced higher up the neck.",
+      "diagram": {
+        "kind": "chord",
+        "name": "C (A shape)",
+        "frets": [-1, 3, 5, 5, 5, 3],
+        "fingers": [0, 1, 2, 3, 4, 1]
+      }
+    },
+    {
+      "kind": "fretboard",
+      "title": "C, in the G shape",
+      "body": "The open G major shape (320003) transposed up 5 frets puts its root on string 6 fret 8 = C. The full barre is a stretch; players usually grab the top portion as a partial chord. The shape is here to *see*, not necessarily to play perfectly.",
+      "diagram": {
+        "kind": "chord",
+        "name": "C (G shape)",
+        "frets": [8, 7, 5, 5, 5, 8],
+        "fingers": [3, 2, 1, 1, 1, 4]
+      }
+    },
+    {
+      "kind": "fretboard",
+      "title": "C, in the E shape",
+      "body": "The classic E-shape barre at fret 8. Root on string 6 fret 8 = C. This is probably the most-used barre voicing in rock and pop.",
+      "diagram": {
+        "kind": "chord",
+        "name": "C (E shape)",
+        "frets": [8, 10, 10, 9, 8, 8],
+        "fingers": [1, 3, 4, 2, 1, 1]
+      }
+    },
+    {
+      "kind": "fretboard",
+      "title": "C, in the D shape",
+      "body": "The open D shape (xx0232) moved up so the root on string 4 lands at fret 10 = C. Compact and bright at the top of the neck.",
+      "diagram": {
+        "kind": "chord",
+        "name": "C (D shape)",
+        "frets": [-1, -1, 10, 12, 13, 12],
+        "fingers": [0, 0, 1, 2, 4, 3]
+      }
+    },
+    {
+      "kind": "prose",
+      "title": "How they connect",
+      "body": "The five shapes for any one chord are physically adjacent. C-shape ends where A-shape begins; A-shape ends where G-shape begins; and so on. Memorize the order C-A-G-E-D and you can find the same chord *anywhere* on the neck.\n\nThe payoff: instead of just one barre voicing for every chord, you have five. You can voice-lead more smoothly, you can put the highest melody note exactly where you need it, and you can navigate the fretboard with the same five shapes you've already been using since day one."
+    },
+    {
+      "kind": "prose",
+      "title": "Practice tip",
+      "body": "Don't try to memorize CAGED for all 12 chords at once. Pick one chord (C is traditional) and play it in all five positions every time you sit down. After a week, do the same for G. After a month, you'll know the entire fretboard by feel."
+    },
+    {
+      "kind": "chordTrainer",
+      "title": "Cycle through the five shapes",
+      "chords": [
+        "C (C shape)",
+        "C (A shape)",
+        "C (G shape)",
+        "C (E shape)",
+        "C (D shape)"
+      ],
+      "tempo": 50,
+      "bars": 10
+    }
+  ]
+}

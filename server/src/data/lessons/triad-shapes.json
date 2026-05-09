@@ -1,0 +1,79 @@
+{
+  "id": "triad-shapes",
+  "title": "Triad shapes on three strings",
+  "summary": "Tiny three-note voicings cover the entire fretboard and unlock chord melody.",
+  "track": "theory",
+  "difficulty": 3,
+  "orderIndex": 4,
+  "prerequisites": ["triad-qualities"],
+  "theoryTags": ["chords", "triads", "inversions", "theory"],
+  "xpReward": 100,
+  "steps": [
+    {
+      "kind": "prose",
+      "title": "Why three-string triads?",
+      "body": "Open-position chords are great for strumming but they're stuck in one place on the neck. Three-string triads -- one note per string on three adjacent strings -- are tiny, movable, and live everywhere. They're the foundation of chord melody, funk comping, and any time you need 'just enough chord' to imply harmony.\n\nWe'll learn the three inversions of C major on the highest three strings (G, B, E)."
+    },
+    {
+      "kind": "fretboard",
+      "title": "Root position: C E G",
+      "body": "Bass note (C) on string 3, 3rd (E) on string 2, 5th (G) on string 1. The root is the lowest note, hence 'root position'.",
+      "diagram": {
+        "kind": "chord",
+        "name": "C (root)",
+        "frets": [-1, -1, -1, 5, 5, 3],
+        "fingers": [0, 0, 0, 3, 4, 1]
+      }
+    },
+    {
+      "kind": "fretboard",
+      "title": "First inversion: E G C",
+      "body": "Same notes, different stacking. The 3rd is now on the bottom. Notice each note moved up one chord tone (C -> E, E -> G, G -> C).",
+      "diagram": {
+        "kind": "chord",
+        "name": "C/E",
+        "frets": [-1, -1, -1, 9, 8, 8],
+        "fingers": [0, 0, 0, 3, 1, 2]
+      }
+    },
+    {
+      "kind": "fretboard",
+      "title": "Second inversion: G C E",
+      "body": "The 5th is now on the bottom. Climb to the top of the neck for the highest voicing -- a great 'cap' for a chord melody arrangement.",
+      "diagram": {
+        "kind": "chord",
+        "name": "C/G",
+        "frets": [-1, -1, -1, 12, 13, 12],
+        "fingers": [0, 0, 0, 1, 3, 2]
+      }
+    },
+    {
+      "kind": "prose",
+      "title": "Make them minor",
+      "body": "To turn any of these into a minor triad, lower the 3rd by one fret. For root position (frets 5-5-3), the 3rd is on string 2 fret 5 -- drop it to fret 4 to get C minor (C Eb G). Try it for all three inversions; the muscle memory is identical to major minus one note."
+    },
+    {
+      "kind": "fretboard",
+      "title": "C minor, root position",
+      "body": "Same shape as major, with the 3rd lowered.",
+      "diagram": {
+        "kind": "chord",
+        "name": "Cm (root)",
+        "frets": [-1, -1, -1, 5, 4, 3],
+        "fingers": [0, 0, 0, 3, 2, 1]
+      }
+    },
+    {
+      "kind": "prose",
+      "title": "Why this matters",
+      "body": "Once you know all three inversions of major and minor on one string set, you can:\n- comp a 12-bar blues without ever leaving frets 5-12,\n- play chord melodies (the highest note of the inversion sings the melody),\n- voice-lead between chords smoothly (move the closest note instead of leaping).\n\nNext stop: applying these shapes everywhere via the CAGED system."
+    },
+    {
+      "kind": "chordTrainer",
+      "title": "Strum the inversions",
+      "chords": ["C (root)", "C/E", "C/G"],
+      "tempo": 60,
+      "bars": 6
+    }
+  ]
+}
