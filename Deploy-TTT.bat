@@ -416,10 +416,12 @@ echo.
 
 :: ---------------------------------------------------------------
 ::  7. MIKTEX (must be staged - no stable direct download URL)
+::  FIX: quoted wildcard in for-in treated as literal, not glob;
+::       use for /f + dir /b (same fix applied to MobaXterm earlier)
 :: ---------------------------------------------------------------
 call :log "[7/12] MikTeX"
 set "MIKTEX_EXE="
-for %%f in ("%INSTDIR%\basic-miktex-*-x64.exe") do set "MIKTEX_EXE=%%f"
+for /f "delims=" %%f in ('dir /b "%INSTDIR%\basic-miktex-*-x64.exe" 2^>nul') do set "MIKTEX_EXE=%INSTDIR%\%%f"
 
 if not defined MIKTEX_EXE (
     call :log "    NOT FOUND in Installers\"
@@ -487,21 +489,24 @@ if exist "%VSP_DEST%\vsp.exe" (
     ) else (
         call :log "    Using staged zip."
     )
+    :: FIX: VSP_PS is set inside this else-block, so %VSP_PS% expands to
+    ::      empty at block-parse time — must use !VSP_PS! (delayed expansion)
+    ::      throughout. Same issue for VSP_ZIP if the inner if updated it.
     set "VSP_PS=C:\vsp_install.ps1"
-    if exist "%VSP_PS%" del /q "%VSP_PS%"
-    echo $zip = "%VSP_ZIP%">> "%VSP_PS%"
-    echo $dest = "C:\">> "%VSP_PS%"
-    echo Expand-Archive -Path $zip -DestinationPath $dest -Force>> "%VSP_PS%"
-    echo $extracted = Get-ChildItem "C:\" -Directory ^| Where-Object { $_.Name -like "OpenVSP-3.29.0*" } ^| Select-Object -First 1>> "%VSP_PS%"
-    echo if ($extracted -and $extracted.FullName -ne "C:\OpenVSP-3.29.0") { Rename-Item $extracted.FullName "OpenVSP-3.29.0" }>> "%VSP_PS%"
-    echo $ws = New-Object -ComObject WScript.Shell>> "%VSP_PS%"
-    echo $desk = [Environment]::GetFolderPath("CommonDesktopDirectory")>> "%VSP_PS%"
-    echo $sc = $ws.CreateShortcut($desk + "\OpenVSP 3.29.0.lnk")>> "%VSP_PS%"
-    echo $sc.TargetPath = "C:\OpenVSP-3.29.0\vsp.exe">> "%VSP_PS%"
-    echo $sc.WorkingDirectory = "C:\OpenVSP-3.29.0">> "%VSP_PS%"
-    echo $sc.Save()>> "%VSP_PS%"
+    if exist "!VSP_PS!" del /q "!VSP_PS!"
+    echo $zip = "!VSP_ZIP!">> "!VSP_PS!"
+    echo $dest = "C:\">> "!VSP_PS!"
+    echo Expand-Archive -Path $zip -DestinationPath $dest -Force>> "!VSP_PS!"
+    echo $extracted = Get-ChildItem "C:\" -Directory ^| Where-Object { $_.Name -like "OpenVSP-3.29.0*" } ^| Select-Object -First 1>> "!VSP_PS!"
+    echo if ($extracted -and $extracted.FullName -ne "C:\OpenVSP-3.29.0") { Rename-Item $extracted.FullName "OpenVSP-3.29.0" }>> "!VSP_PS!"
+    echo $ws = New-Object -ComObject WScript.Shell>> "!VSP_PS!"
+    echo $desk = [Environment]::GetFolderPath("CommonDesktopDirectory")>> "!VSP_PS!"
+    echo $sc = $ws.CreateShortcut($desk + "\OpenVSP 3.29.0.lnk")>> "!VSP_PS!"
+    echo $sc.TargetPath = "C:\OpenVSP-3.29.0\vsp.exe">> "!VSP_PS!"
+    echo $sc.WorkingDirectory = "C:\OpenVSP-3.29.0">> "!VSP_PS!"
+    echo $sc.Save()>> "!VSP_PS!"
     call :log "    Extracting and installing OpenVSP..."
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%VSP_PS%" >> "%LOGFILE%" 2>&1
+    powershell -NoProfile -ExecutionPolicy Bypass -File "!VSP_PS!" >> "%LOGFILE%" 2>&1
     call :result !errorlevel!
 )
 :vsp_done
