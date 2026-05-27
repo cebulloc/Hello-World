@@ -155,40 +155,46 @@ if exist "%DONE_FLAG%" (
 :: ---------------------------------------------------------------
 ::  1. MINIFORGE3 (Python 3.13, registered as default)
 ::  FIX: was using a literal for loop that always matched; use if exist instead
+::  FIX: added already-installed skip to avoid "directory not empty" error
 :: ---------------------------------------------------------------
 call :log "[1/12] Miniforge3 (Python 3.13, register as default)"
-set "MFORGE_EXE="
-if exist "%INSTDIR%\Miniforge3-Windows-x86_64.exe" (
-    set "MFORGE_EXE=%INSTDIR%\Miniforge3-Windows-x86_64.exe"
-    call :log "    Using staged installer."
+set "MFORGE_DEST=%USERPROFILE%\Miniforge3"
+if exist "!MFORGE_DEST!\Scripts\conda.exe" (
+    call :log "    Already installed at !MFORGE_DEST! - skipping."
+    call :log "    To reinstall, delete !MFORGE_DEST! and re-run."
 ) else (
-    call :log "    Not staged - downloading latest..."
-    set "MFORGE_EXE=%TEMP%\Miniforge3-Windows-x86_64.exe"
-    curl -L --silent --show-error -o "!MFORGE_EXE!" ^
-        "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-x86_64.exe"
-    if !errorlevel! neq 0 ( call :log "    [WARN] Download failed." & set "MFORGE_EXE=" )
-)
-
-if defined MFORGE_EXE (
-    if not exist "!MFORGE_EXE!" (
-        call :log "    [ERROR] File not found: !MFORGE_EXE!"
+    set "MFORGE_EXE="
+    if exist "%INSTDIR%\Miniforge3-Windows-x86_64.exe" (
+        set "MFORGE_EXE=%INSTDIR%\Miniforge3-Windows-x86_64.exe"
+        call :log "    Using staged installer."
     ) else (
-        set "MFORGE_DEST=%USERPROFILE%\Miniforge3"
-        call :log "    Installing to !MFORGE_DEST!..."
-        "!MFORGE_EXE!" /InstallationType=JustMe /RegisterPython=1 /AddToPath=0 /S /D=!MFORGE_DEST!
-        call :result !errorlevel!
-        call :log "    Initializing conda for cmd and PowerShell..."
-        "!MFORGE_DEST!\Scripts\conda.exe" init cmd.exe >> "%LOGFILE%" 2>&1
-        "!MFORGE_DEST!\Scripts\conda.exe" init powershell >> "%LOGFILE%" 2>&1
-        call :log "    Writing .condarc (conda-forge only, no defaults)..."
-        if exist "!MFORGE_DEST!\.condarc" del /q "!MFORGE_DEST!\.condarc"
-        echo channels:>> "!MFORGE_DEST!\.condarc"
-        echo   - conda-forge>> "!MFORGE_DEST!\.condarc"
-        echo channel_priority: strict>> "!MFORGE_DEST!\.condarc"
-        echo default_channels: []>> "!MFORGE_DEST!\.condarc"
-        echo auto_activate_base: false>> "!MFORGE_DEST!\.condarc"
-        call :result !errorlevel!
-        call :log "    Python 3.13 ready. Open a new terminal and run: conda activate base"
+        call :log "    Not staged - downloading latest..."
+        set "MFORGE_EXE=%TEMP%\Miniforge3-Windows-x86_64.exe"
+        curl -L --silent --show-error -o "!MFORGE_EXE!" ^
+            "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-x86_64.exe"
+        if !errorlevel! neq 0 ( call :log "    [WARN] Download failed." & set "MFORGE_EXE=" )
+    )
+
+    if defined MFORGE_EXE (
+        if not exist "!MFORGE_EXE!" (
+            call :log "    [ERROR] File not found: !MFORGE_EXE!"
+        ) else (
+            call :log "    Installing to !MFORGE_DEST!..."
+            "!MFORGE_EXE!" /InstallationType=JustMe /RegisterPython=1 /AddToPath=0 /S /D=!MFORGE_DEST!
+            call :result !errorlevel!
+            call :log "    Initializing conda for cmd and PowerShell..."
+            "!MFORGE_DEST!\Scripts\conda.exe" init cmd.exe >> "%LOGFILE%" 2>&1
+            "!MFORGE_DEST!\Scripts\conda.exe" init powershell >> "%LOGFILE%" 2>&1
+            call :log "    Writing .condarc (conda-forge only, no defaults)..."
+            if exist "!MFORGE_DEST!\.condarc" del /q "!MFORGE_DEST!\.condarc"
+            echo channels:>> "!MFORGE_DEST!\.condarc"
+            echo   - conda-forge>> "!MFORGE_DEST!\.condarc"
+            echo channel_priority: strict>> "!MFORGE_DEST!\.condarc"
+            echo default_channels: []>> "!MFORGE_DEST!\.condarc"
+            echo auto_activate_base: false>> "!MFORGE_DEST!\.condarc"
+            call :result !errorlevel!
+            call :log "    Python 3.13 ready. Open a new terminal and run: conda activate base"
+        )
     )
 )
 echo.
@@ -365,31 +371,45 @@ echo.
 
 :: ---------------------------------------------------------------
 ::  6. MOBAXTERM (MSI - must be staged, no direct download URL)
+::  FIX: added already-installed skip
+::  FIX: replaced for-loop glob inside else block with for /f + dir /b
+::       (delayed-expansion paths in for-in patterns are unreliable)
 :: ---------------------------------------------------------------
 call :log "[6/12] MobaXterm"
-set "MOBA_MSI="
-for %%f in ("%INSTDIR%\MobaXterm_installer_*.msi") do set "MOBA_MSI=%%f"
 
-if not defined MOBA_MSI (
-    call :log "    NOT FOUND in Installers\"
-    call :log "    Download from: https://mobaxterm.mobatek.net/download.html"
-    call :log "    Stage as: Installers\MobaXterm_installer_x.y.msi"
-    call :log "    [SKIP]"
+:: Already-installed check
+set "MOBA_SKIP=0"
+if exist "%ProgramFiles(x86)%\Mobatek\MobaXterm\MobaXterm.exe" set "MOBA_SKIP=1"
+if exist "%ProgramFiles%\Mobatek\MobaXterm\MobaXterm.exe" set "MOBA_SKIP=1"
+
+if "!MOBA_SKIP!"=="1" (
+    call :log "    Already installed - skipping."
 ) else (
-    call :log "    Installing from staged: !MOBA_MSI!"
-    set "MOBA_TMP=%TEMP%\MobaInstall"
-    if exist "!MOBA_TMP!" rd /s /q "!MOBA_TMP!"
-    mkdir "!MOBA_TMP!"
-    for %%f in ("%INSTDIR%\MobaXterm*") do copy /Y "%%f" "!MOBA_TMP!\" >nul 2>&1
-    set "MOBA_LOCAL="
-    for %%f in ("!MOBA_TMP!\MobaXterm_installer_*.msi") do set "MOBA_LOCAL=%%f"
-    if not defined MOBA_LOCAL (
-        call :log "    [ERROR] Could not locate MSI in temp folder."
+    set "MOBA_MSI="
+    for /f "delims=" %%f in ('dir /b "%INSTDIR%\MobaXterm_installer_*.msi" 2^>nul') do set "MOBA_MSI=%INSTDIR%\%%f"
+
+    if not defined MOBA_MSI (
+        call :log "    NOT FOUND in Installers\"
+        call :log "    Download from: https://mobaxterm.mobatek.net/download.html"
+        call :log "    Stage as: Installers\MobaXterm_installer_x.y.msi"
+        call :log "    [SKIP]"
     ) else (
-        call :log "    Running: !MOBA_LOCAL!"
-        msiexec.exe /i "!MOBA_LOCAL!" /qn /norestart /L*v "%LOGFILE%.moba.log"
-        set "MOBA_RC=!errorlevel!"
-        call :result !MOBA_RC!
+        call :log "    Installing from staged: !MOBA_MSI!"
+        set "MOBA_TMP=%TEMP%\MobaInstall"
+        if exist "!MOBA_TMP!" rd /s /q "!MOBA_TMP!"
+        mkdir "!MOBA_TMP!"
+        :: Copy MSI and any companion files (e.g. .dat) to local temp
+        for /f "delims=" %%f in ('dir /b "%INSTDIR%\MobaXterm*" 2^>nul') do copy /Y "%INSTDIR%\%%f" "!MOBA_TMP!\" >nul 2>&1
+        set "MOBA_LOCAL="
+        for /f "delims=" %%f in ('dir /b "!MOBA_TMP!\MobaXterm_installer_*.msi" 2^>nul') do set "MOBA_LOCAL=!MOBA_TMP!\%%f"
+        if not defined MOBA_LOCAL (
+            call :log "    [ERROR] Could not locate MSI in temp folder."
+        ) else (
+            call :log "    Running: !MOBA_LOCAL!"
+            msiexec.exe /i "!MOBA_LOCAL!" /qn /norestart /L*v "%LOGFILE%.moba.log"
+            set "MOBA_RC=!errorlevel!"
+            call :result !MOBA_RC!
+        )
     )
 )
 echo.
