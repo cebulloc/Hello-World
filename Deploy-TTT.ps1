@@ -577,8 +577,8 @@ Invoke-Section '[10/12] Notepad++ (latest)' {
 #  [11/12]  7-ZIP  (latest)
 # ================================================================
 Invoke-Section '[11/12] 7-Zip (latest)' {
-    $zipInstalled = (Test-Path 'HKLM:\SOFTWARE\7-Zip') -or
-                    (Test-Path 'HKLM:\SOFTWARE\WOW6432Node\7-Zip')
+    $zipInstalled = (Test-Path "$env:ProgramFiles\7-Zip\7z.exe") -or
+                    (Test-Path "${env:ProgramFiles(x86)}\7-Zip\7z.exe")
     if ($zipInstalled) {
         Write-Log '    Already installed - skipping.'
         return
