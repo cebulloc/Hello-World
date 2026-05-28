@@ -172,7 +172,7 @@ if (Test-Path $instSrc) {
 }
 
 Write-Log '================================================================'
-Write-Log "TTT Pathways Deployment — $env:COMPUTERNAME"
+Write-Log "TTT Pathways Deployment - $env:COMPUTERNAME"
 Write-Log "Log: $logFile"
 Write-Log '================================================================'
 
@@ -621,7 +621,7 @@ Write-Log '================================================================'
 Write-Host ''
 Write-Host '  NEXT STEPS:'
 Write-Host '  1. Open a NEW terminal to use conda / Python 3.13'
-Write-Host '  2. VS Code Remote-SSH: F1 > "Remote-SSH: Add New Host" — SSH wrapper is pre-configured'
+Write-Host '  2. VS Code Remote-SSH: F1 > "Remote-SSH: Add New Host" - SSH wrapper is pre-configured'
 Write-Host '  3. TortoiseGit: shell icons may need Explorer restart'
 Write-Host '  4. MikTeX: run MikTeX Console after first launch to update packages'
 Write-Host "  5. OpenVSP: $VSP_DEST\vsp.exe (Public Desktop shortcut created)"
