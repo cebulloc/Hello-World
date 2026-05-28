@@ -161,32 +161,40 @@ goto :main
 :main
 :: ================================================================
 
-:: Block concurrent instances - multiple elevated CMDs can spawn if the
-:: script is run several times quickly; they all see no DONE_FLAG (written
-:: only at the end) and run simultaneously, interleaving log output and
-:: colliding on installs. A lock file prevents this.
+:: Block concurrent and repeated runs.
+:: The lock folder is created once and NEVER deleted after a successful
+:: deployment - so every future invocation immediately gets the "done"
+:: message below. To re-deploy, the user must manually delete both files.
 set "LOCK_FILE=%TEMP%\TTT_Deploy_%COMPUTERNAME%.lock"
+set "DONE_FLAG=%TEMP%\TTT_Deploy_%COMPUTERNAME%_COMPLETE.flag"
+
 mkdir "%LOCK_FILE%" >nul 2>&1
 if !errorlevel! neq 0 (
     echo.
-    echo [!] A deployment is already running on this machine.
-    echo [!] Lock: %LOCK_FILE%
-    echo [!] If no deployment is running ^(stale lock^), delete the folder and retry.
+    if exist "%DONE_FLAG%" (
+        echo [INFO] Deployment already completed on this machine.
+        echo [INFO] To re-deploy, delete both of these and run again:
+        echo [INFO]   %DONE_FLAG%
+        echo [INFO]   %LOCK_FILE%
+    ) else (
+        echo [!] A deployment is already running on this machine.
+        echo [!] Lock: %LOCK_FILE%
+        echo [!] If no deployment is running ^(stale lock^), delete that folder and retry.
+    )
     echo.
     pause
     exit /b 1
 )
 
-:: Check if deployment already completed successfully on this machine
-set "DONE_FLAG=%TEMP%\TTT_Deploy_%COMPUTERNAME%_COMPLETE.flag"
+:: Lock acquired. Double-check the done flag inside the lock.
 if exist "%DONE_FLAG%" (
     echo.
-    echo [INFO] Deployment was already completed on this machine.
-    echo [INFO] Flag: %DONE_FLAG%
-    echo [INFO] Delete that file and re-run to force a fresh deployment.
+    echo [INFO] Deployment already completed ^(flag found inside lock^).
+    echo [INFO] To re-deploy, delete both:
+    echo [INFO]   %DONE_FLAG%
+    echo [INFO]   %LOCK_FILE%
     echo.
     pause
-    rd /q "%LOCK_FILE%" >nul 2>&1
     exit /b 0
 )
 
@@ -653,7 +661,7 @@ echo.
 echo ================================================================
 call :log "DEPLOYMENT COMPLETE: %DATE% %TIME%"
 echo COMPLETED > "%DONE_FLAG%"
-rd /q "%LOCK_FILE%" >nul 2>&1
+:: Lock is intentionally NOT released - keeps future invocations from running again.
 echo   Log: %LOGFILE%
 echo ================================================================
 echo.
