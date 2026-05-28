@@ -85,10 +85,12 @@ if defined _UNC_DRIVE set "SCRIPTDIR=!_UNC_DRIVE!"
 if defined _UNC_DRIVE echo [INFO] Mapped UNC share to !_UNC_DRIVE! for this session.
 :unc_check_done
 
-:: Always stage installers locally to avoid UNC execution blocks
+:: Always stage installers locally to avoid UNC execution blocks.
+:: Do NOT delete INSTDIR first - concurrent instances share %TEMP% and
+:: rd /s /q while another instance is reading the folder corrupts their
+:: staged files (and wipes ssh-wrapper.bat mid-run).
 set "INSTDIR=%TEMP%\DeployInstallers"
-if exist "%INSTDIR%" rd /s /q "%INSTDIR%"
-mkdir "%INSTDIR%"
+if not exist "%INSTDIR%" mkdir "%INSTDIR%"
 echo [INFO] Staging installers to local temp: %INSTDIR%
 xcopy /E /I /Y "%SCRIPTDIR%\Installers\*" "%INSTDIR%\" >nul 2>&1
 if %errorlevel% neq 0 (
@@ -307,6 +309,10 @@ echo $raw = Get-Content $settingsPath -Raw>> "!SSH_WRAP_PS!"
 echo try ^{ $json = $raw ^| ConvertFrom-Json ^} catch ^{ $json = [PSCustomObject]@^{^} ^}>> "!SSH_WRAP_PS!"
 echo $json ^| Add-Member -Force -NotePropertyName 'remote.SSH.path' -NotePropertyValue $wrapPath>> "!SSH_WRAP_PS!"
 echo $json ^| ConvertTo-Json -Depth 10 ^| Set-Content $settingsPath -Encoding UTF8>> "!SSH_WRAP_PS!"
+if not exist "!SSH_WRAP_PS!" (
+    call :log "    [WARN] PS script not written - skipping settings.json update."
+    goto :ssh_skip
+)
 powershell -NoProfile -ExecutionPolicy Bypass -File "!SSH_WRAP_PS!" >> "%LOGFILE%" 2>&1
 call :result !errorlevel!
 call :log "    VS Code settings.json updated: remote.SSH.path = !SSH_WRAPPER_DEST!"
@@ -646,8 +652,8 @@ echo.
 :: ---------------------------------------------------------------
 echo ================================================================
 call :log "DEPLOYMENT COMPLETE: %DATE% %TIME%"
-rd /q "%LOCK_FILE%" >nul 2>&1
 echo COMPLETED > "%DONE_FLAG%"
+rd /q "%LOCK_FILE%" >nul 2>&1
 echo   Log: %LOGFILE%
 echo ================================================================
 echo.
