@@ -243,7 +243,7 @@ Invoke-Section '[2/12] Visual Studio Code + extensions + SSH wrapper' {
         }
 
         $proc = Start-Process -FilePath $setupExe `
-            -ArgumentList '/VERYSILENT /NORESTART /MERGETASKS=desktopicon,addcontextmenufiles,addcontextmenufolders,associatewithfiles,addtopath' `
+            -ArgumentList '/VERYSILENT /NORESTART /MERGETASKS=desktopicon,addcontextmenufiles,addcontextmenufolders,associatewithfiles,addtopath !runcode' `
             -Wait -PassThru
         Write-Result $proc.ExitCode
     }
