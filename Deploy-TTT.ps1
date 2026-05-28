@@ -546,16 +546,16 @@ Invoke-Section '[10/12] Notepad++ (latest)' {
         return
     }
 
-    $installer = Get-ChildItem "$instDir\npp.*Installer64.exe" -ErrorAction SilentlyContinue |
+    $installer = Get-ChildItem "$instDir\npp*Installer*x64.exe" -ErrorAction SilentlyContinue |
                  Select-Object -First 1
     if ($installer) {
         Write-Log '    Using staged installer.'
         $nppExe = $installer.FullName
     } else {
         Write-Log '    Not staged - downloading latest...'
-        $url = Get-GhAssetUrl 'notepad-plus-plus/notepad-plus-plus' 'npp.*Installer64.exe'
+        $url = Get-GhAssetUrl 'notepad-plus-plus/notepad-plus-plus' 'npp.*Installer.x64.exe'
         if (-not $url) { Write-Log '    [WARN] Could not resolve download URL.'; return }
-        $nppExe = "$env:TEMP\npp-latest-Installer64.exe"
+        $nppExe = "$env:TEMP\npp-latest-Installer.x64.exe"
         Invoke-WebRequest $url -OutFile $nppExe -UseBasicParsing
     }
 
