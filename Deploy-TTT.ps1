@@ -1,25 +1,23 @@
 #Requires -Version 5.1
-# TTT PATHWAYS INTERN WORKSTATION DEPLOYMENT
-# Interns: Lukman Kohler, Louis-Gustave Theulier, Zijun Wang
-#
-# Run from: \\server\share\Deploy-TTT\  (UNC auto-mapped) or a local path.
-#
-# PRE-STAGE in .\Installers\:
-#   Miniforge3-Windows-x86_64.exe           (or auto-downloaded)
-#   VSCodeSetup-x64-x.x.x.exe              (or auto-downloaded)
-#   ssh-wrapper.bat                          (required)
-#   basic-miktex-x.x-x64.exe               (required - no stable URL)
-#   MobaXterm_installer_x.y.msi            (required - no direct URL)
-#   OpenVSP-3.50.4-win64-Python3.13.zip    (or auto-downloaded)
-#
-# AUTO-DOWNLOADED (no staging needed):
-#   Git for Windows        github.com/git-for-windows/git
-#   TortoiseGit            github.com/TortoiseGit/TortoiseGit
-#   PuTTY-CAC              github.com/NoMoreFood/putty-cac
-#   Notepad++              github.com/notepad-plus-plus/notepad-plus-plus
-#   7-Zip                  github.com/ip7z/7zip
-#   TeXstudio              github.com/texstudio-org/texstudio
-#   VS Code                update.code.visualstudio.com
+<#
+.SYNOPSIS
+    TTT Pathways Intern Workstation Deployment
+.DESCRIPTION
+    Deploys 12 tools to NASA intern workstations. Replaces Deploy-TTT.bat.
+    Run from \\server\share\Deploy-TTT\ or a mapped drive.
+
+    PRE-STAGE in .\Installers\:
+      Miniforge3-Windows-x86_64.exe          (or auto-downloaded)
+      VSCodeSetup-x64-x.x.x.exe             (or auto-downloaded)
+      ssh-wrapper.bat                        (required)
+      basic-miktex-x.x-x64.exe              (required - no stable URL)
+      MobaXterm_installer_x.y.msi           (required - no direct URL)
+      OpenVSP-3.50.4-win64-Python3.13.zip   (or auto-downloaded)
+
+    AUTO-DOWNLOADED (no staging needed):
+      Git for Windows, TortoiseGit, PuTTY-CAC, Notepad++, 7-Zip,
+      TeXstudio, VS Code
+#>
 
 # ================================================================
 #  CONFIGURATION
@@ -84,13 +82,12 @@ function Invoke-Section {
 # ================================================================
 #  SELF-ELEVATION
 # ================================================================
-$identity  = [Security.Principal.WindowsIdentity]::GetCurrent()
-$principal = New-Object Security.Principal.WindowsPrincipal($identity)
+$principal = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
     Start-Process powershell `
+        -Verb RunAs `
         -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" `
-        -WorkingDirectory $env:TEMP `
-        -Verb RunAs
+        -WorkingDirectory $env:TEMP
     exit
 }
 
@@ -99,7 +96,7 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
 # ================================================================
 $scriptDir = $PSScriptRoot
 
-# Auto-map UNC path to a drive letter so installers can run without UNC restrictions.
+# Auto-map UNC path to a drive letter so installers are not blocked by UNC execution policy.
 if ($scriptDir -like '\\*') {
     $mapped = $false
     foreach ($letter in ('Z','Y','X','W','V','U','T','S','R','Q','P','O','N','M','L','K')) {
@@ -169,9 +166,9 @@ if (-not (Test-Path $instDir)) {
 $instSrc = Join-Path $scriptDir 'Installers'
 if (Test-Path $instSrc) {
     Copy-Item "$instSrc\*" $instDir -Recurse -Force -ErrorAction SilentlyContinue
-    Write-Log "[INFO] Staged installers to $instDir"
+    Add-Content -Path $logFile -Value "    [INFO] Staged installers to $instDir" -Encoding UTF8
 } else {
-    Write-Log "[WARN] No Installers\ folder found at $scriptDir"
+    Add-Content -Path $logFile -Value "    [WARN] No Installers\ folder found at $scriptDir" -Encoding UTF8
 }
 
 Write-Log '================================================================'
@@ -212,8 +209,8 @@ Invoke-Section '[1/12] Miniforge3 (Python 3.13, register as default)' {
     Write-Result $proc.ExitCode
 
     Write-Log '    Initializing conda for cmd.exe and PowerShell...'
-    & "$dest\Scripts\conda.exe" init cmd.exe    2>&1 | Add-Content $logFile
-    & "$dest\Scripts\conda.exe" init powershell 2>&1 | Add-Content $logFile
+    & "$dest\Scripts\conda.exe" init cmd.exe    2>&1 | Add-Content $logFile -Encoding UTF8
+    & "$dest\Scripts\conda.exe" init powershell 2>&1 | Add-Content $logFile -Encoding UTF8
 
     Write-Log '    Writing .condarc (conda-forge only, no defaults)...'
     @"
@@ -251,14 +248,13 @@ Invoke-Section '[2/12] Visual Studio Code + extensions + SSH wrapper' {
         Write-Result $proc.ExitCode
     }
 
-    # Stop any running Code instance before installing extensions.
+    # Stop any running Code instance before installing extensions (prevents IPC conflict under admin).
     Stop-Process -Name Code -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 2
 
     $codeCmd = "$env:ProgramFiles\Microsoft VS Code\bin\code.cmd"
     foreach ($ext in @('ms-python.python', 'ms-vscode-remote.remote-ssh', 'eamodio.gitlens')) {
-        Write-Log "    Installing extension: $ext"
-        & $codeCmd --install-extension $ext --no-sandbox 2>&1 | Add-Content $logFile
+        & $codeCmd --install-extension $ext --no-sandbox 2>&1 | Add-Content $logFile -Encoding UTF8
     }
 
     # SSH wrapper
@@ -368,7 +364,7 @@ Invoke-Section '[4/12] TortoiseGit (latest)' {
 # ================================================================
 Invoke-Section '[5/12] PuTTY-CAC (NoMoreFood, latest)' {
     $puttyInstalled = (Test-Path "$env:ProgramFiles\PuTTY\putty.exe") -or
-                      (Test-Path "$env:ProgramFiles(x86)\PuTTY\putty.exe")
+                      (Test-Path "${env:ProgramFiles(x86)}\PuTTY\putty.exe")
     if ($puttyInstalled) {
         Write-Log '    Already installed - skipping.'
         return
@@ -387,7 +383,7 @@ Invoke-Section '[5/12] PuTTY-CAC (NoMoreFood, latest)' {
         Invoke-WebRequest $url -OutFile $msi -UseBasicParsing
     }
 
-    # Copy to a local temp folder so msiexec never runs from a UNC/network path.
+    # Copy to a local temp folder so msiexec never runs from a UNC or network path.
     $tmpDir = "$env:TEMP\PuTTYInstall"
     if (-not (Test-Path $tmpDir)) { New-Item -Path $tmpDir -ItemType Directory | Out-Null }
     Copy-Item $msi $tmpDir -Force
@@ -401,7 +397,7 @@ Invoke-Section '[5/12] PuTTY-CAC (NoMoreFood, latest)' {
 #  [6/12]  MOBAXTERM  (must be staged - no download URL)
 # ================================================================
 Invoke-Section '[6/12] MobaXterm' {
-    $mobaInstalled = (Test-Path "$env:ProgramFiles(x86)\Mobatek\MobaXterm\MobaXterm.exe") -or
+    $mobaInstalled = (Test-Path "${env:ProgramFiles(x86)}\Mobatek\MobaXterm\MobaXterm.exe") -or
                      (Test-Path "$env:ProgramFiles\Mobatek\MobaXterm\MobaXterm.exe")
     if ($mobaInstalled) {
         Write-Log '    Already installed - skipping.'
@@ -424,7 +420,8 @@ Invoke-Section '[6/12] MobaXterm' {
     Get-ChildItem "$instDir\MobaXterm*" -ErrorAction SilentlyContinue |
         ForEach-Object { Copy-Item $_.FullName $tmpDir -Force }
 
-    $localMsi = Get-ChildItem "$tmpDir\MobaXterm_installer_*.msi" | Select-Object -First 1
+    $localMsi = Get-ChildItem "$tmpDir\MobaXterm_installer_*.msi" -ErrorAction SilentlyContinue |
+                Select-Object -First 1
     if (-not $localMsi) {
         Write-Log '    [ERROR] Could not locate MSI in temp folder.'
         return
@@ -522,7 +519,7 @@ Invoke-Section "[9/12] OpenVSP $VSP_VER" {
     Write-Log '    Extracting to C:\...'
     Expand-Archive -Path $zipPath -DestinationPath 'C:\' -Force
 
-    # Rename extracted folder if it has a longer name (e.g. includes build hash).
+    # Rename extracted folder if it has a longer name (e.g. includes build qualifier).
     $extracted = Get-ChildItem 'C:\' -Directory |
                  Where-Object { $_.Name -like "OpenVSP-$VSP_VER*" } |
                  Select-Object -First 1
@@ -537,7 +534,7 @@ Invoke-Section "[9/12] OpenVSP $VSP_VER" {
     $sc.TargetPath       = "$VSP_DEST\vsp.exe"
     $sc.WorkingDirectory = $VSP_DEST
     $sc.Save()
-    Write-Log "    Shortcut created on Public Desktop."
+    Write-Log '    Shortcut created on Public Desktop.'
 }
 
 # ================================================================
@@ -545,7 +542,7 @@ Invoke-Section "[9/12] OpenVSP $VSP_VER" {
 # ================================================================
 Invoke-Section '[10/12] Notepad++ (latest)' {
     $nppInstalled = (Test-Path "$env:ProgramFiles\Notepad++\notepad++.exe") -or
-                    (Test-Path "$env:ProgramFiles(x86)\Notepad++\notepad++.exe")
+                    (Test-Path "${env:ProgramFiles(x86)}\Notepad++\notepad++.exe")
     if ($nppInstalled) {
         Write-Log '    Already installed - skipping.'
         return
@@ -623,7 +620,7 @@ Write-Log "DEPLOYMENT COMPLETE: $(Get-Date)"
 Write-Log '================================================================'
 
 'COMPLETED' | Set-Content $donePath -Encoding UTF8
-# Lock is intentionally NOT removed — prevents future accidental re-runs.
+# Lock is intentionally NOT removed - prevents future accidental re-runs.
 
 Write-Host ''
 Write-Host '  NEXT STEPS:'
