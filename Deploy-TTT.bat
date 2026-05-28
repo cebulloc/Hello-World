@@ -1,4 +1,6 @@
 @echo off
+:: Move to a local directory immediately so CMD never uses UNC as working dir
+cd /d "%TEMP%" 2>nul
 setlocal EnableDelayedExpansion
 
 :: ================================================================
@@ -50,7 +52,7 @@ net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo [!] Not running as Administrator. Relaunching elevated...
     powershell -NoProfile -Command ^
-        "Start-Process cmd.exe -ArgumentList '/c \"%~f0\"' -Verb RunAs"
+        "Start-Process cmd.exe -ArgumentList '/c \"%~f0\"' -WorkingDirectory $env:TEMP -Verb RunAs"
     exit /b
 )
 
@@ -67,6 +69,21 @@ set "SCRIPTDIR=%~dp0"
 if "%SCRIPTDIR:~-1%"=="\" set "SCRIPTDIR=%SCRIPTDIR:~0,-1%"
 if "%SCRIPTDIR:~2%"=="" set "SCRIPTDIR=%CD%"
 if "%SCRIPTDIR:~-1%"=="\" set "SCRIPTDIR=%SCRIPTDIR:~0,-1%"
+
+:: If SCRIPTDIR is a UNC path, auto-map to a free drive letter.
+:: CMD can run scripts from UNC paths but cannot use UNC as working directory,
+:: which causes warnings and breaks %CD%-dependent logic.
+set "_UNC_DRIVE="
+if not "%SCRIPTDIR:~0,2%"=="\\" goto :unc_check_done
+for %%D in (Z Y X W V U T S R Q P O N M L K) do (
+    if "!_UNC_DRIVE!"=="" if not exist "%%D:\" (
+        net use %%D: "%SCRIPTDIR%" /persistent:no >nul 2>&1
+        if !errorlevel!==0 set "_UNC_DRIVE=%%D:"
+    )
+)
+if defined _UNC_DRIVE set "SCRIPTDIR=!_UNC_DRIVE!"
+if defined _UNC_DRIVE echo [INFO] Mapped UNC share to !_UNC_DRIVE! for this session.
+:unc_check_done
 
 :: Always stage installers locally to avoid UNC execution blocks
 set "INSTDIR=%TEMP%\DeployInstallers"
