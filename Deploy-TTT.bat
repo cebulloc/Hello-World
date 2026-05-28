@@ -327,28 +327,18 @@ echo.
 :: ---------------------------------------------------------------
 call :log "[5/12] PuTTY-CAC (NoMoreFood, latest)"
 set "PUTTY_MSI="
-for %%f in ("%INSTDIR%\puttycac-*-x64.msi") do set "PUTTY_MSI=%%f"
+for /f "delims=" %%f in ('dir /b "%INSTDIR%\puttycac-*-x64.msi" 2^>nul') do set "PUTTY_MSI=%INSTDIR%\%%f"
 
 if not defined PUTTY_MSI (
-    call :log "    Not staged - fetching latest from GitHub..."
+    call :log "    Not staged - fetching latest release asset from GitHub..."
     set "PUTTY_MSI=%TEMP%\puttycac-latest-x64.msi"
-    set "_PCPS=%TEMP%\get_putty_tag.ps1"
-    set "_PCTAG=%TEMP%\putty_tag.txt"
-    if exist "%_PCPS%" del /q "%_PCPS%"
-    if exist "%_PCTAG%" del /q "%_PCTAG%"
-    echo $rel = Invoke-RestMethod "https://api.github.com/repos/NoMoreFood/putty-cac/releases/latest"> "%_PCPS%"
-    echo $rel.tag_name.Trim() ^| Out-File -FilePath "%_PCTAG%" -Encoding ASCII -NoNewline>> "%_PCPS%"
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%_PCPS%" >> "%LOGFILE%" 2>&1
-    set "PUTTY_TAG="
-    if exist "%_PCTAG%" set /p PUTTY_TAG= < "%_PCTAG%"
-    if defined PUTTY_TAG (
-        set "PUTTY_URL=https://github.com/NoMoreFood/putty-cac/raw/!PUTTY_TAG!/binaries/puttycac-!PUTTY_TAG!-x64.msi"
-        curl -L --silent --show-error -o "!PUTTY_MSI!" "!PUTTY_URL!"
+    call :gh_asset "NoMoreFood/putty-cac" "puttycac-*-x64.msi"
+    if defined GH_RESULT (
+        curl -L --silent --show-error -o "!PUTTY_MSI!" "!GH_RESULT!"
         if !errorlevel! neq 0 set "PUTTY_MSI="
     ) else (
-        call :log "    [WARN] Could not fetch PuTTY-CAC tag. Using fallback 0.84u1..."
-        curl -L --silent --show-error -o "!PUTTY_MSI!" "https://github.com/NoMoreFood/putty-cac/raw/0.84u1/binaries/puttycac-0.84u1-x64.msi"
-        if !errorlevel! neq 0 set "PUTTY_MSI="
+        call :log "    [WARN] Could not find release asset. Stage puttycac-*-x64.msi manually."
+        set "PUTTY_MSI="
     )
 ) else (
     call :log "    Using staged installer."
@@ -361,7 +351,7 @@ if defined PUTTY_MSI (
         mkdir "!PUTTY_TMP!"
         copy /Y "!PUTTY_MSI!" "!PUTTY_TMP!\" >nul 2>&1
         set "PUTTY_LOCAL="
-        for %%f in ("!PUTTY_TMP!\puttycac-*-x64.msi") do set "PUTTY_LOCAL=%%f"
+        for /f "delims=" %%f in ('dir /b "!PUTTY_TMP!\puttycac-*-x64.msi" 2^>nul') do set "PUTTY_LOCAL=!PUTTY_TMP!\%%f"
         msiexec.exe /i "!PUTTY_LOCAL!" /qn /norestart
         set "PUTTY_RC=!errorlevel!"
         call :result !PUTTY_RC!
@@ -477,15 +467,12 @@ set "VSP_ZIP=%INSTDIR%\OpenVSP-3.29.0-win64.zip"
 if exist "%VSP_DEST%\vsp.exe" (
     call :log "    Already installed at %VSP_DEST% - skipping."
 ) else (
-    if not exist "%VSP_ZIP%" (
-        call :log "    Not staged - downloading..."
-        set "VSP_ZIP=%TEMP%\OpenVSP-3.29.0-win64.zip"
-        curl -L --silent --show-error -o "!VSP_ZIP!" ^
-            "https://openvsp.org/download.php?file=zips/old/windows/OpenVSP-3.29.0-win64.zip"
-        if !errorlevel! neq 0 (
-            call :log "    [WARN] Download failed. Get from: https://openvsp.org/download_old.php"
-            goto :vsp_done
-        )
+    if not exist "!VSP_ZIP!" (
+        call :log "    NOT FOUND in Installers\"
+        call :log "    Download from: https://openvsp.org/download_old.php"
+        call :log "    Stage as: Installers\OpenVSP-3.29.0-win64.zip"
+        call :log "    [SKIP]"
+        goto :vsp_done
     ) else (
         call :log "    Using staged zip."
     )
@@ -517,7 +504,7 @@ echo.
 :: ---------------------------------------------------------------
 call :log "[10/12] Notepad++ (latest)"
 set "NPP_EXE="
-for %%f in ("%INSTDIR%\npp.*.Installer.x64.exe") do set "NPP_EXE=%%f"
+for /f "delims=" %%f in ('dir /b "%INSTDIR%\npp.*.Installer.x64.exe" 2^>nul') do set "NPP_EXE=%INSTDIR%\%%f"
 
 if not defined NPP_EXE (
     call :log "    Not staged - downloading latest..."
@@ -552,7 +539,7 @@ if "!ZIP_SKIP!"=="1" (
     call :log "    Already installed - skipping."
 ) else (
     set "ZIP_EXE="
-    for %%f in ("%INSTDIR%\7z*-x64.exe") do set "ZIP_EXE=%%f"
+    for /f "delims=" %%f in ('dir /b "%INSTDIR%\7z*-x64.exe" 2^>nul') do set "ZIP_EXE=%INSTDIR%\%%f"
 
     if not defined ZIP_EXE (
         call :log "    Not staged - downloading latest..."
