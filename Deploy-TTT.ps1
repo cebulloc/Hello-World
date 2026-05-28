@@ -22,9 +22,11 @@
 # ================================================================
 #  CONFIGURATION
 # ================================================================
-$PRINTER  = '\\hplrcprtp01\LA_2101_200_1'
-$VSP_VER  = '3.50.4'
-$VSP_DEST = "C:\OpenVSP-$VSP_VER"
+$PRINTER    = '\\hplrcprtp01\LA_2101_200_1'
+$VSP_VER    = '3.50.4'
+$VSP_DEST   = "C:\OpenVSP-$VSP_VER"
+# Set to $true to skip all downloads - use only what is in Installers\
+$StagedOnly = $true
 
 # ================================================================
 #  HELPER FUNCTIONS
@@ -196,6 +198,7 @@ Invoke-Section '[1/12] Miniforge3 (Python 3.13, register as default)' {
         Write-Log '    Using staged installer.'
         $exePath = $installer.FullName
     } else {
+        if ($StagedOnly) { Write-Log '    [SKIP] Not staged and StagedOnly is set.'; return }
         Write-Log '    Not staged - downloading latest...'
         $exePath = "$env:TEMP\Miniforge3.exe"
         Invoke-WebRequest 'https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-x86_64.exe' `
@@ -226,12 +229,13 @@ Invoke-Section '[2/12] Visual Studio Code + extensions + SSH wrapper' {
     $codeExe = "$env:ProgramFiles\Microsoft VS Code\Code.exe"
 
     if (-not (Test-Path $codeExe)) {
-        $installer = Get-ChildItem "$instDir\VSCodeSetup-x64-*.exe" -ErrorAction SilentlyContinue |
+        $installer = Get-ChildItem "$instDir\VSCodeSetup-x64*.exe" -ErrorAction SilentlyContinue |
                      Select-Object -First 1
         if ($installer) {
             Write-Log '    Using staged installer.'
             $setupExe = $installer.FullName
         } else {
+            if ($StagedOnly) { Write-Log '    [SKIP] Not staged and StagedOnly is set.'; return }
             Write-Log '    Not staged - downloading...'
             $setupExe = "$env:TEMP\VSCodeSetup-x64.exe"
             Invoke-WebRequest 'https://update.code.visualstudio.com/latest/win32-x64/stable' `
@@ -318,6 +322,7 @@ Invoke-Section '[3/12] Git for Windows (latest)' {
         Write-Log '    Using staged installer.'
         $gitExe = $installer.FullName
     } else {
+        if ($StagedOnly) { Write-Log '    [SKIP] Not staged and StagedOnly is set.'; return }
         Write-Log '    Not staged - fetching latest from GitHub...'
         $url = Get-GhAssetUrl 'git-for-windows/git' '*-64-bit.exe'
         if (-not $url) { Write-Log '    [WARN] Could not resolve download URL.'; return }
@@ -346,6 +351,7 @@ Invoke-Section '[4/12] TortoiseGit (latest)' {
         Write-Log '    Using staged installer.'
         $msi = $installer.FullName
     } else {
+        if ($StagedOnly) { Write-Log '    [SKIP] Not staged and StagedOnly is set.'; return }
         Write-Log '    Not staged - fetching latest from GitHub...'
         $url = Get-GhAssetUrl 'TortoiseGit/TortoiseGit' 'TortoiseGit-*-64bit.msi'
         if (-not $url) { Write-Log '    [WARN] Could not resolve download URL.'; return }
@@ -374,6 +380,7 @@ Invoke-Section '[5/12] PuTTY-CAC (NoMoreFood, latest)' {
         Write-Log '    Using staged installer.'
         $msi = $installer.FullName
     } else {
+        if ($StagedOnly) { Write-Log '    [SKIP] Not staged and StagedOnly is set.'; return }
         Write-Log '    Not staged - fetching latest from GitHub...'
         $url = Get-GhAssetUrl 'NoMoreFood/putty-cac' 'puttycac-*-x64.msi'
         if (-not $url) { Write-Log '    [WARN] Could not resolve download URL.'; return }
@@ -477,6 +484,7 @@ Invoke-Section '[8/12] TeXstudio (latest)' {
         Write-Log '    Using staged installer.'
         $txsExe = $installer.FullName
     } else {
+        if ($StagedOnly) { Write-Log '    [SKIP] Not staged and StagedOnly is set.'; return }
         Write-Log '    Not staged - downloading latest...'
         $url = Get-GhAssetUrl 'texstudio-org/texstudio' '*-win-x64.exe'
         if (-not $url) {
@@ -507,6 +515,7 @@ Invoke-Section "[9/12] OpenVSP $VSP_VER" {
         Write-Log '    Using staged zip.'
         $zipPath = $installer.FullName
     } else {
+        if ($StagedOnly) { Write-Log '    [SKIP] Not staged and StagedOnly is set.'; return }
         Write-Log '    Not staged - downloading from GitHub...'
         $url = Get-GhAssetUrl 'OpenVSP/OpenVSP' "OpenVSP-$VSP_VER-win64-Python3.13.zip"
         if (-not $url) { Write-Log '    [WARN] Could not resolve download URL.'; return }
@@ -552,6 +561,7 @@ Invoke-Section '[10/12] Notepad++ (latest)' {
         Write-Log '    Using staged installer.'
         $nppExe = $installer.FullName
     } else {
+        if ($StagedOnly) { Write-Log '    [SKIP] Not staged and StagedOnly is set.'; return }
         Write-Log '    Not staged - downloading latest...'
         $url = Get-GhAssetUrl 'notepad-plus-plus/notepad-plus-plus' 'npp.*Installer.x64.exe'
         if (-not $url) { Write-Log '    [WARN] Could not resolve download URL.'; return }
@@ -580,6 +590,7 @@ Invoke-Section '[11/12] 7-Zip (latest)' {
         Write-Log '    Using staged installer.'
         $zipExe = $installer.FullName
     } else {
+        if ($StagedOnly) { Write-Log '    [SKIP] Not staged and StagedOnly is set.'; return }
         Write-Log '    Not staged - downloading latest...'
         $url = Get-GhAssetUrl 'ip7z/7zip' '7z*-x64.exe'
         if (-not $url) { Write-Log '    [WARN] Could not resolve download URL.'; return }
