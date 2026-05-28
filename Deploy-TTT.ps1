@@ -525,14 +525,14 @@ Invoke-Section "[9/12] OpenVSP $VSP_VER" {
         Rename-Item $extracted.FullName "OpenVSP-$VSP_VER"
     }
 
-    # Public desktop shortcut.
+    # User desktop shortcut.
     $ws   = New-Object -ComObject WScript.Shell
-    $desk = [Environment]::GetFolderPath('CommonDesktopDirectory')
+    $desk = [Environment]::GetFolderPath('Desktop')
     $sc   = $ws.CreateShortcut("$desk\OpenVSP $VSP_VER.lnk")
     $sc.TargetPath       = "$VSP_DEST\vsp.exe"
     $sc.WorkingDirectory = $VSP_DEST
     $sc.Save()
-    Write-Log '    Shortcut created on Public Desktop.'
+    Write-Log "    Shortcut created on user Desktop: $desk\OpenVSP $VSP_VER.lnk"
 }
 
 # ================================================================
@@ -626,7 +626,7 @@ Write-Host '  1. Open a NEW terminal to use conda / Python 3.13'
 Write-Host '  2. VS Code Remote-SSH: F1 > "Remote-SSH: Add New Host" - SSH wrapper is pre-configured'
 Write-Host '  3. TortoiseGit: shell icons may need Explorer restart'
 Write-Host '  4. MikTeX: run MikTeX Console after first launch to update packages'
-Write-Host "  5. OpenVSP: $VSP_DEST\vsp.exe (Public Desktop shortcut created)"
+Write-Host "  5. OpenVSP: $VSP_DEST\vsp.exe (Desktop shortcut created)"
 Write-Host '  6. Printer: Settings > Printers & Scanners > verify'
 Write-Host ''
 Write-Host "  Log: $logFile"
