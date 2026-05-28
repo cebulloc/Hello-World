@@ -255,13 +255,15 @@ Invoke-Section '[2/12] Visual Studio Code + extensions + SSH wrapper' {
 
     # SSH wrapper
     $wrapSrc  = "$instDir\ssh-wrapper.bat"
-    $wrapDest = "$env:USERPROFILE\ssh-wrapper.bat"
+    $binDir   = "$env:USERPROFILE\bin"
+    $wrapDest = "$binDir\ssh-wrapper.bat"
 
     if (-not (Test-Path $wrapSrc)) {
         Write-Log '    [WARN] ssh-wrapper.bat not found in Installers\ - skipping SSH config.'
         return
     }
 
+    if (-not (Test-Path $binDir)) { New-Item -Path $binDir -ItemType Directory | Out-Null }
     Copy-Item $wrapSrc $wrapDest -Force
     Write-Log "    Copied ssh-wrapper.bat to $wrapDest"
 
