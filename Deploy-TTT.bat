@@ -147,21 +147,21 @@ goto :main
 :: only at the end) and run simultaneously, interleaving log output and
 :: colliding on installs. A lock file prevents this.
 set "LOCK_FILE=%TEMP%\TTT_Deploy_%COMPUTERNAME%.lock"
-if exist "%LOCK_FILE%" (
+mkdir "%LOCK_FILE%" >nul 2>&1
+if !errorlevel! neq 0 (
     echo.
     echo [!] A deployment is already running on this machine.
     echo [!] Lock: %LOCK_FILE%
-    echo [!] If no deployment is running ^(stale lock^), delete the file and retry.
+    echo [!] If no deployment is running ^(stale lock^), delete the folder and retry.
     echo.
     pause
     exit /b 1
 )
-echo %DATE% %TIME% > "%LOCK_FILE%"
 
 :: Check if deployment already completed successfully on this machine
 set "DONE_FLAG=%TEMP%\TTT_Deploy_%COMPUTERNAME%_COMPLETE.flag"
 if exist "%DONE_FLAG%" (
-    del /q "%LOCK_FILE%" >nul 2>&1
+    rd /q "%LOCK_FILE%" >nul 2>&1
     echo.
     echo [INFO] Deployment was already completed on this machine.
     echo [INFO] Flag: %DONE_FLAG%
@@ -629,7 +629,7 @@ echo.
 :: ---------------------------------------------------------------
 echo ================================================================
 call :log "DEPLOYMENT COMPLETE: %DATE% %TIME%"
-del /q "%LOCK_FILE%" >nul 2>&1
+rd /q "%LOCK_FILE%" >nul 2>&1
 echo COMPLETED > "%DONE_FLAG%"
 echo   Log: %LOGFILE%
 echo ================================================================
