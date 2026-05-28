@@ -213,12 +213,8 @@ Invoke-Section '[1/12] Miniforge3 (Python 3.13, register as default)' {
     & "$dest\Scripts\conda.exe" init powershell 2>&1 | Add-Content $logFile -Encoding UTF8
 
     Write-Log '    Writing .condarc (conda-forge only, no defaults)...'
-    @"
-channels:
-  - conda-forge
-channel_priority: strict
-auto_activate_base: true
-"@ | Set-Content "$env:USERPROFILE\.condarc" -Encoding UTF8
+    "channels:`n  - conda-forge`nchannel_priority: strict`nauto_activate_base: true" |
+        Set-Content "$env:USERPROFILE\.condarc" -Encoding UTF8
 
     Write-Log '    Python 3.13 ready. Open a new terminal and run: conda activate base'
 }
