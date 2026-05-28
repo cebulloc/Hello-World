@@ -15,7 +15,7 @@ setlocal EnableDelayedExpansion
 ::    ssh-wrapper.bat                     (required)
 ::    basic-miktex-x.x-x64.exe           (required - no stable URL)
 ::    MobaXterm_installer_x.y.msi        (required - no direct URL)
-::    OpenVSP-3.29.0-win64.zip           (or auto-downloaded)
+::    OpenVSP-3.50.4-win64-Python3.13.zip           (or auto-downloaded)
 ::
 ::  AUTO-DOWNLOADED (no staging needed):
 ::    Git for Windows        github.com/git-for-windows/git
@@ -35,7 +35,7 @@ setlocal EnableDelayedExpansion
 ::    [6]  MobaXterm
 ::    [7]  MikTeX
 ::    [8]  TeXstudio
-::    [9]  OpenVSP 3.29.0
+::    [9]  OpenVSP 3.50.4
 ::    [10] Notepad++ (auto-download)
 ::    [11] 7-Zip (auto-download)
 ::    [12] Network Printer \\hplrcprtp01\LA_2101_200_1
@@ -201,34 +201,32 @@ echo.
 
 :: ---------------------------------------------------------------
 ::  2. VS CODE + EXTENSIONS + SSH WRAPPER CONFIG
-::  FIX: VSCODE_TASKS had leading !runcode which delayed expansion ate;
-::       replaced with correct VS Code MERGETASKS tokens.
-::  FIX: extension installs moved inside the VSCODE_EXE block so they
-::       only run when VS Code was actually installed this session.
 :: ---------------------------------------------------------------
 call :log "[2/12] Visual Studio Code + extensions + SSH wrapper"
-set "VSCODE_EXE="
-for %%f in ("%INSTDIR%\VSCodeSetup-x64-*.exe") do set "VSCODE_EXE=%%f"
-
-if not defined VSCODE_EXE (
-    call :log "    Not staged - downloading..."
-    set "VSCODE_EXE=%TEMP%\VSCodeSetup-x64.exe"
-    curl -L --silent --show-error -o "!VSCODE_EXE!" ^
-        "https://update.code.visualstudio.com/latest/win32-x64/stable"
-    if !errorlevel! neq 0 ( call :log "    [WARN] Download failed." & set "VSCODE_EXE=" )
+if exist "%ProgramFiles%\Microsoft VS Code\Code.exe" (
+    call :log "    Already installed - skipping installer and extensions."
 ) else (
-    call :log "    Using staged installer."
-)
-
-if defined VSCODE_EXE (
-    set "VSCODE_TASKS=desktopicon,addcontextmenufiles,addcontextmenufolders,associatewithfiles,addtopath"
-    "!VSCODE_EXE!" /VERYSILENT /NORESTART "/MERGETASKS=!VSCODE_TASKS!"
-    call :result !errorlevel!
-    call :log "    Installing extensions: Python, Remote-SSH, GitLens..."
-    "%ProgramFiles%\Microsoft VS Code\bin\code.cmd" --install-extension ms-python.python >> "%LOGFILE%" 2>&1
-    "%ProgramFiles%\Microsoft VS Code\bin\code.cmd" --install-extension ms-vscode-remote.remote-ssh >> "%LOGFILE%" 2>&1
-    "%ProgramFiles%\Microsoft VS Code\bin\code.cmd" --install-extension eamodio.gitlens >> "%LOGFILE%" 2>&1
-    call :result !errorlevel!
+    set "VSCODE_EXE="
+    for /f "delims=" %%f in ('dir /b "%INSTDIR%\VSCodeSetup-x64-*.exe" 2^>nul') do set "VSCODE_EXE=%INSTDIR%\%%f"
+    if not defined VSCODE_EXE (
+        call :log "    Not staged - downloading..."
+        set "VSCODE_EXE=%TEMP%\VSCodeSetup-x64.exe"
+        curl -L --silent --show-error -o "!VSCODE_EXE!" ^
+            "https://update.code.visualstudio.com/latest/win32-x64/stable"
+        if !errorlevel! neq 0 ( call :log "    [WARN] Download failed." & set "VSCODE_EXE=" )
+    ) else (
+        call :log "    Using staged installer."
+    )
+    if defined VSCODE_EXE (
+        set "VSCODE_TASKS=desktopicon,addcontextmenufiles,addcontextmenufolders,associatewithfiles,addtopath"
+        "!VSCODE_EXE!" /VERYSILENT /NORESTART "/MERGETASKS=!VSCODE_TASKS!"
+        call :result !errorlevel!
+        call :log "    Installing extensions: Python, Remote-SSH, GitLens..."
+        "%ProgramFiles%\Microsoft VS Code\bin\code.cmd" --install-extension ms-python.python >> "%LOGFILE%" 2>&1
+        "%ProgramFiles%\Microsoft VS Code\bin\code.cmd" --install-extension ms-vscode-remote.remote-ssh >> "%LOGFILE%" 2>&1
+        "%ProgramFiles%\Microsoft VS Code\bin\code.cmd" --install-extension eamodio.gitlens >> "%LOGFILE%" 2>&1
+        call :result !errorlevel!
+    )
 )
 
 :: SSH wrapper setup (runs whether or not VS Code was just installed)
@@ -275,24 +273,26 @@ echo.
 ::  3. GIT FOR WINDOWS
 :: ---------------------------------------------------------------
 call :log "[3/12] Git for Windows (latest)"
-set "GIT_EXE="
-for %%f in ("%INSTDIR%\Git-*-64-bit.exe") do set "GIT_EXE=%%f"
-
-if not defined GIT_EXE (
-    call :log "    Not staged - fetching latest from GitHub..."
-    set "GIT_EXE=%TEMP%\Git-latest-64-bit.exe"
-    call :gh_asset "git-for-windows/git" "*64-bit.exe"
-    if defined GH_RESULT ( curl -L --silent --show-error -o "!GIT_EXE!" "!GH_RESULT!" ) else ( set "GIT_EXE=" )
+if exist "%ProgramFiles%\Git\cmd\git.exe" (
+    call :log "    Already installed - skipping."
 ) else (
-    call :log "    Using staged installer."
-)
-
-if defined GIT_EXE (
-    if exist "!GIT_EXE!" (
-        "!GIT_EXE!" /VERYSILENT /NORESTART /NOCANCEL /SP- ^
-            /COMPONENTS="icons,ext\reg\shellhere,assoc,assoc_sh,gitlfs" ^
-            /o:PathOption=Cmd /o:BashTerminalOption=ConHost /o:EnableSymlinks=Disabled
-        call :result !errorlevel!
+    set "GIT_EXE="
+    for /f "delims=" %%f in ('dir /b "%INSTDIR%\Git-*-64-bit.exe" 2^>nul') do set "GIT_EXE=%INSTDIR%\%%f"
+    if not defined GIT_EXE (
+        call :log "    Not staged - fetching latest from GitHub..."
+        set "GIT_EXE=%TEMP%\Git-latest-64-bit.exe"
+        call :gh_asset "git-for-windows/git" "*64-bit.exe"
+        if defined GH_RESULT ( curl -L --silent --show-error -o "!GIT_EXE!" "!GH_RESULT!" ) else ( set "GIT_EXE=" )
+    ) else (
+        call :log "    Using staged installer."
+    )
+    if defined GIT_EXE (
+        if exist "!GIT_EXE!" (
+            "!GIT_EXE!" /VERYSILENT /NORESTART /NOCANCEL /SP- ^
+                /COMPONENTS="icons,ext\reg\shellhere,assoc,assoc_sh,gitlfs" ^
+                /o:PathOption=Cmd /o:BashTerminalOption=ConHost /o:EnableSymlinks=Disabled
+            call :result !errorlevel!
+        )
     )
 )
 echo.
@@ -301,23 +301,25 @@ echo.
 ::  4. TORTOISEGIT
 :: ---------------------------------------------------------------
 call :log "[4/12] TortoiseGit (latest)"
-set "TGIT_MSI="
-for %%f in ("%INSTDIR%\TortoiseGit-*-64bit.msi") do set "TGIT_MSI=%%f"
-
-if not defined TGIT_MSI (
-    call :log "    Not staged - fetching latest from GitHub..."
-    set "TGIT_MSI=%TEMP%\TortoiseGit-latest-64bit.msi"
-    call :gh_asset "TortoiseGit/TortoiseGit" "TortoiseGit-*-64bit.msi"
-    if defined GH_RESULT ( curl -L --silent --show-error -o "!TGIT_MSI!" "!GH_RESULT!" ) else ( set "TGIT_MSI=" )
+if exist "%ProgramFiles%\TortoiseGit\bin\TortoiseGit.exe" (
+    call :log "    Already installed - skipping."
 ) else (
-    call :log "    Using staged installer."
-)
-
-if defined TGIT_MSI (
-    if exist "!TGIT_MSI!" (
-        msiexec.exe /i "!TGIT_MSI!" /qn /norestart REBOOT=ReallySuppress
-        call :result !errorlevel!
-        call :log "    Shell icons active after Explorer restart or reboot."
+    set "TGIT_MSI="
+    for /f "delims=" %%f in ('dir /b "%INSTDIR%\TortoiseGit-*-64bit.msi" 2^>nul') do set "TGIT_MSI=%INSTDIR%\%%f"
+    if not defined TGIT_MSI (
+        call :log "    Not staged - fetching latest from GitHub..."
+        set "TGIT_MSI=%TEMP%\TortoiseGit-latest-64bit.msi"
+        call :gh_asset "TortoiseGit/TortoiseGit" "TortoiseGit-*-64bit.msi"
+        if defined GH_RESULT ( curl -L --silent --show-error -o "!TGIT_MSI!" "!GH_RESULT!" ) else ( set "TGIT_MSI=" )
+    ) else (
+        call :log "    Using staged installer."
+    )
+    if defined TGIT_MSI (
+        if exist "!TGIT_MSI!" (
+            msiexec.exe /i "!TGIT_MSI!" /qn /norestart REBOOT=ReallySuppress
+            call :result !errorlevel!
+            call :log "    Shell icons active after Explorer restart or reboot."
+        )
     )
 )
 echo.
@@ -430,95 +432,100 @@ echo.
 ::  8. TEXSTUDIO (auto-download latest)
 :: ---------------------------------------------------------------
 call :log "[8/12] TeXstudio (latest)"
-set "TXS_EXE="
-for %%f in ("%INSTDIR%\texstudio-*-win-x64.exe") do set "TXS_EXE=%%f"
-if not defined TXS_EXE (
-    for %%f in ("%INSTDIR%\texstudio-*-win-qt*.exe") do set "TXS_EXE=%%f"
-)
-
-if not defined TXS_EXE (
-    call :log "    Not staged - downloading latest..."
-    set "TXS_EXE=%TEMP%\texstudio-latest-win-x64.exe"
-    call :gh_asset "texstudio-org/texstudio" "*win-x64.exe"
-    if defined GH_RESULT ( curl -L --silent --show-error -o "!TXS_EXE!" "!GH_RESULT!" ) else ( set "TXS_EXE=" )
+if exist "%ProgramFiles%\texstudio\texstudio.exe" (
+    call :log "    Already installed - skipping."
 ) else (
-    call :log "    Using staged installer."
-)
-
-if defined TXS_EXE (
-    if exist "!TXS_EXE!" (
-        call :log "    Installing silently..."
-        "!TXS_EXE!" /S /NORESTART
-        call :result !errorlevel!
+    set "TXS_EXE="
+    for /f "delims=" %%f in ('dir /b "%INSTDIR%\texstudio-*-win-x64.exe" 2^>nul') do set "TXS_EXE=%INSTDIR%\%%f"
+    if not defined TXS_EXE (
+        for /f "delims=" %%f in ('dir /b "%INSTDIR%\texstudio-*-win-qt*.exe" 2^>nul') do set "TXS_EXE=%INSTDIR%\%%f"
+    )
+    if not defined TXS_EXE (
+        call :log "    Not staged - downloading latest..."
+        set "TXS_EXE=%TEMP%\texstudio-latest-win-x64.exe"
+        call :gh_asset "texstudio-org/texstudio" "*win-x64.exe"
+        if defined GH_RESULT ( curl -L --silent --show-error -o "!TXS_EXE!" "!GH_RESULT!" ) else ( set "TXS_EXE=" )
+    ) else (
+        call :log "    Using staged installer."
+    )
+    if defined TXS_EXE (
+        if exist "!TXS_EXE!" (
+            call :log "    Installing silently..."
+            "!TXS_EXE!" /S /NORESTART
+            call :result !errorlevel!
+        )
     )
 )
 echo.
 
 :: ---------------------------------------------------------------
-::  9. OPENVSP 3.29.0
-::  FIX: PS1 $dest had broken "> >>" redirect; corrected to "C:\"
-::  FIX: shortcut TargetPath was missing backslash (3.29.0sp.exe ->
-::       3.29.0\vsp.exe)
+::  9. OPENVSP 3.50.4
 :: ---------------------------------------------------------------
-call :log "[9/12] OpenVSP 3.29.0"
-set "VSP_DEST=C:\OpenVSP-3.29.0"
-set "VSP_ZIP=%INSTDIR%\OpenVSP-3.29.0-win64.zip"
+call :log "[9/12] OpenVSP 3.50.4"
+set "VSP_DEST=C:\OpenVSP-3.50.4"
+set "VSP_ZIP=%INSTDIR%\OpenVSP-3.50.4-win64-Python3.13.zip"
 
-if exist "%VSP_DEST%\vsp.exe" (
-    call :log "    Already installed at %VSP_DEST% - skipping."
+if exist "!VSP_DEST!\vsp.exe" (
+    call :log "    Already installed at !VSP_DEST! - skipping."
 ) else (
+    :: Use flag instead of goto-inside-block to avoid CMD block-parser confusion
+    set "VSP_OK=0"
     if not exist "!VSP_ZIP!" (
         call :log "    NOT FOUND in Installers\"
-        call :log "    Download from: https://openvsp.org/download_old.php"
-        call :log "    Stage as: Installers\OpenVSP-3.29.0-win64.zip"
+        call :log "    Download from: https://openvsp.org/download.php"
+        call :log "    Stage as: Installers\OpenVSP-3.50.4-win64-Python3.13.zip"
         call :log "    [SKIP]"
-        goto :vsp_done
     ) else (
         call :log "    Using staged zip."
+        set "VSP_OK=1"
     )
-    :: FIX: VSP_PS is set inside this else-block, so %VSP_PS% expands to
-    ::      empty at block-parse time — must use !VSP_PS! (delayed expansion)
-    ::      throughout. Same issue for VSP_ZIP if the inner if updated it.
-    set "VSP_PS=C:\vsp_install.ps1"
-    if exist "!VSP_PS!" del /q "!VSP_PS!"
-    echo $zip = "!VSP_ZIP!">> "!VSP_PS!"
-    echo $dest = "C:\">> "!VSP_PS!"
-    echo Expand-Archive -Path $zip -DestinationPath $dest -Force>> "!VSP_PS!"
-    echo $extracted = Get-ChildItem "C:\" -Directory ^| Where-Object { $_.Name -like "OpenVSP-3.29.0*" } ^| Select-Object -First 1>> "!VSP_PS!"
-    echo if ($extracted -and $extracted.FullName -ne "C:\OpenVSP-3.29.0") { Rename-Item $extracted.FullName "OpenVSP-3.29.0" }>> "!VSP_PS!"
-    echo $ws = New-Object -ComObject WScript.Shell>> "!VSP_PS!"
-    echo $desk = [Environment]::GetFolderPath("CommonDesktopDirectory")>> "!VSP_PS!"
-    echo $sc = $ws.CreateShortcut($desk + "\OpenVSP 3.29.0.lnk")>> "!VSP_PS!"
-    echo $sc.TargetPath = "C:\OpenVSP-3.29.0\vsp.exe">> "!VSP_PS!"
-    echo $sc.WorkingDirectory = "C:\OpenVSP-3.29.0">> "!VSP_PS!"
-    echo $sc.Save()>> "!VSP_PS!"
-    call :log "    Extracting and installing OpenVSP..."
-    powershell -NoProfile -ExecutionPolicy Bypass -File "!VSP_PS!" >> "%LOGFILE%" 2>&1
-    call :result !errorlevel!
+    if "!VSP_OK!"=="1" (
+        set "VSP_PS=C:\vsp_install.ps1"
+        if exist "!VSP_PS!" del /q "!VSP_PS!"
+        echo $zip = "!VSP_ZIP!">> "!VSP_PS!"
+        echo $dest = "C:\">> "!VSP_PS!"
+        echo Expand-Archive -Path $zip -DestinationPath $dest -Force>> "!VSP_PS!"
+        echo $extracted = Get-ChildItem "C:\" -Directory ^| Where-Object { $_.Name -like "OpenVSP-3.50.4*" } ^| Select-Object -First 1>> "!VSP_PS!"
+        echo if ($extracted -and $extracted.FullName -ne "C:\OpenVSP-3.50.4") { Rename-Item $extracted.FullName "OpenVSP-3.50.4" }>> "!VSP_PS!"
+        echo $ws = New-Object -ComObject WScript.Shell>> "!VSP_PS!"
+        echo $desk = [Environment]::GetFolderPath("CommonDesktopDirectory")>> "!VSP_PS!"
+        echo $sc = $ws.CreateShortcut($desk + "\OpenVSP 3.50.4.lnk")>> "!VSP_PS!"
+        echo $sc.TargetPath = "C:\OpenVSP-3.50.4\vsp.exe">> "!VSP_PS!"
+        echo $sc.WorkingDirectory = "C:\OpenVSP-3.50.4">> "!VSP_PS!"
+        echo $sc.Save()>> "!VSP_PS!"
+        call :log "    Extracting and installing OpenVSP..."
+        powershell -NoProfile -ExecutionPolicy Bypass -File "!VSP_PS!" >> "%LOGFILE%" 2>&1
+        call :result !errorlevel!
+    )
 )
-:vsp_done
 echo.
 
 :: ---------------------------------------------------------------
 ::  10. NOTEPAD++ (auto-download latest)
 :: ---------------------------------------------------------------
 call :log "[10/12] Notepad++ (latest)"
-set "NPP_EXE="
-for /f "delims=" %%f in ('dir /b "%INSTDIR%\npp.*.Installer.x64.exe" 2^>nul') do set "NPP_EXE=%INSTDIR%\%%f"
+set "NPP_SKIP=0"
+if exist "%ProgramFiles%\Notepad++\notepad++.exe" set "NPP_SKIP=1"
+if exist "%ProgramFiles(x86)%\Notepad++\notepad++.exe" set "NPP_SKIP=1"
 
-if not defined NPP_EXE (
-    call :log "    Not staged - downloading latest..."
-    set "NPP_EXE=%TEMP%\npp-latest.Installer.x64.exe"
-    call :gh_asset "notepad-plus-plus/notepad-plus-plus" "npp.*.Installer.x64.exe"
-    if defined GH_RESULT ( curl -L --silent --show-error -o "!NPP_EXE!" "!GH_RESULT!" ) else ( set "NPP_EXE=" )
+if "!NPP_SKIP!"=="1" (
+    call :log "    Already installed - skipping."
 ) else (
-    call :log "    Using staged installer."
-)
-
-if defined NPP_EXE (
-    if exist "!NPP_EXE!" (
-        "!NPP_EXE!" /S /noUpdater
-        call :result !errorlevel!
+    set "NPP_EXE="
+    for /f "delims=" %%f in ('dir /b "%INSTDIR%\npp.*.Installer.x64.exe" 2^>nul') do set "NPP_EXE=%INSTDIR%\%%f"
+    if not defined NPP_EXE (
+        call :log "    Not staged - downloading latest..."
+        set "NPP_EXE=%TEMP%\npp-latest.Installer.x64.exe"
+        call :gh_asset "notepad-plus-plus/notepad-plus-plus" "npp.*.Installer.x64.exe"
+        if defined GH_RESULT ( curl -L --silent --show-error -o "!NPP_EXE!" "!GH_RESULT!" ) else ( set "NPP_EXE=" )
+    ) else (
+        call :log "    Using staged installer."
+    )
+    if defined NPP_EXE (
+        if exist "!NPP_EXE!" (
+            "!NPP_EXE!" /S /noUpdater
+            call :result !errorlevel!
+        )
     )
 )
 echo.
@@ -594,7 +601,7 @@ echo     SSH wrapper (PuTTY-CAC/Pageant) is pre-configured
 echo  3. TortoiseGit shell icons: may require Explorer restart
 echo     taskkill /f /im explorer.exe ^& start explorer.exe
 echo  4. MikTeX: run MikTeX Console after first launch to update packages
-echo  5. OpenVSP: C:\OpenVSP-3.29.0\vsp.exe (Public Desktop shortcut)
+echo  5. OpenVSP: C:\OpenVSP-3.50.4\vsp.exe (Public Desktop shortcut)
 echo  6. Printer: Settings ^> Printers ^& Scanners ^> verify
 echo.
 pause
