@@ -460,6 +460,9 @@ echo.
 
 :: ---------------------------------------------------------------
 ::  9. OPENVSP 3.50.4
+::  Kept flat (no nested blocks) so echo-redirect targets and
+::  PowerShell curly braces never trigger CMD block-parser errors.
+::  Top-level goto is safe; goto-inside-nested-block is not.
 :: ---------------------------------------------------------------
 call :log "[9/12] OpenVSP 3.50.4"
 set "VSP_DEST=C:\OpenVSP-3.50.4"
@@ -467,37 +470,36 @@ set "VSP_ZIP=%INSTDIR%\OpenVSP-3.50.4-win64-Python3.13.zip"
 
 if exist "!VSP_DEST!\vsp.exe" (
     call :log "    Already installed at !VSP_DEST! - skipping."
-) else (
-    :: Use flag instead of goto-inside-block to avoid CMD block-parser confusion
-    set "VSP_OK=0"
-    if not exist "!VSP_ZIP!" (
-        call :log "    NOT FOUND in Installers\"
-        call :log "    Download from: https://openvsp.org/download.php"
-        call :log "    Stage as: Installers\OpenVSP-3.50.4-win64-Python3.13.zip"
-        call :log "    [SKIP]"
-    ) else (
-        call :log "    Using staged zip."
-        set "VSP_OK=1"
-    )
-    if "!VSP_OK!"=="1" (
-        set "VSP_PS=C:\vsp_install.ps1"
-        if exist "!VSP_PS!" del /q "!VSP_PS!"
-        echo $zip = "!VSP_ZIP!">> "!VSP_PS!"
-        echo $dest = "C:\">> "!VSP_PS!"
-        echo Expand-Archive -Path $zip -DestinationPath $dest -Force>> "!VSP_PS!"
-        echo $extracted = Get-ChildItem "C:\" -Directory ^| Where-Object { $_.Name -like "OpenVSP-3.50.4*" } ^| Select-Object -First 1>> "!VSP_PS!"
-        echo if ($extracted -and $extracted.FullName -ne "C:\OpenVSP-3.50.4") { Rename-Item $extracted.FullName "OpenVSP-3.50.4" }>> "!VSP_PS!"
-        echo $ws = New-Object -ComObject WScript.Shell>> "!VSP_PS!"
-        echo $desk = [Environment]::GetFolderPath("CommonDesktopDirectory")>> "!VSP_PS!"
-        echo $sc = $ws.CreateShortcut($desk + "\OpenVSP 3.50.4.lnk")>> "!VSP_PS!"
-        echo $sc.TargetPath = "C:\OpenVSP-3.50.4\vsp.exe">> "!VSP_PS!"
-        echo $sc.WorkingDirectory = "C:\OpenVSP-3.50.4">> "!VSP_PS!"
-        echo $sc.Save()>> "!VSP_PS!"
-        call :log "    Extracting and installing OpenVSP..."
-        powershell -NoProfile -ExecutionPolicy Bypass -File "!VSP_PS!" >> "%LOGFILE%" 2>&1
-        call :result !errorlevel!
-    )
+    goto :vsp_skip
 )
+if not exist "!VSP_ZIP!" (
+    call :log "    NOT FOUND in Installers\"
+    call :log "    Download from: https://openvsp.org/download.php"
+    call :log "    Stage as: Installers\OpenVSP-3.50.4-win64-Python3.13.zip"
+    call :log "    [SKIP]"
+    goto :vsp_skip
+)
+
+:: All echo/powershell lines run at top level - no block nesting, no redirect issues
+call :log "    Using staged zip."
+set "VSP_PS=C:\vsp_install.ps1"
+if exist "!VSP_PS!" del /q "!VSP_PS!"
+echo $zip = "!VSP_ZIP!">> "!VSP_PS!"
+echo $dest = "C:\">> "!VSP_PS!"
+echo Expand-Archive -Path $zip -DestinationPath $dest -Force>> "!VSP_PS!"
+echo $extracted = Get-ChildItem "C:\" -Directory ^| Where-Object { $_.Name -like "OpenVSP-3.50.4*" } ^| Select-Object -First 1>> "!VSP_PS!"
+echo if ($extracted -and $extracted.FullName -ne "C:\OpenVSP-3.50.4") { Rename-Item $extracted.FullName "OpenVSP-3.50.4" }>> "!VSP_PS!"
+echo $ws = New-Object -ComObject WScript.Shell>> "!VSP_PS!"
+echo $desk = [Environment]::GetFolderPath("CommonDesktopDirectory")>> "!VSP_PS!"
+echo $sc = $ws.CreateShortcut($desk + "\OpenVSP 3.50.4.lnk")>> "!VSP_PS!"
+echo $sc.TargetPath = "C:\OpenVSP-3.50.4\vsp.exe">> "!VSP_PS!"
+echo $sc.WorkingDirectory = "C:\OpenVSP-3.50.4">> "!VSP_PS!"
+echo $sc.Save()>> "!VSP_PS!"
+call :log "    Extracting and installing OpenVSP..."
+powershell -NoProfile -ExecutionPolicy Bypass -File "!VSP_PS!" >> "%LOGFILE%" 2>&1
+call :result !errorlevel!
+
+:vsp_skip
 echo.
 
 :: ---------------------------------------------------------------
