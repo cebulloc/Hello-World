@@ -408,23 +408,24 @@ echo.
 
 :: ---------------------------------------------------------------
 ::  7. MIKTEX (must be staged - no stable direct download URL)
-::  FIX: quoted wildcard in for-in treated as literal, not glob;
-::       use for /f + dir /b (same fix applied to MobaXterm earlier)
 :: ---------------------------------------------------------------
 call :log "[7/12] MikTeX"
-set "MIKTEX_EXE="
-for /f "delims=" %%f in ('dir /b "%INSTDIR%\basic-miktex-*-x64.exe" 2^>nul') do set "MIKTEX_EXE=%INSTDIR%\%%f"
-
-if not defined MIKTEX_EXE (
-    call :log "    NOT FOUND in Installers\"
-    call :log "    Download from: https://miktex.org/download"
-    call :log "    Stage as: Installers\basic-miktex-x.x-x64.exe"
-    call :log "    [SKIP]"
+if exist "%ProgramFiles%\MiKTeX\miktex\bin\x64\pdflatex.exe" (
+    call :log "    Already installed - skipping."
 ) else (
-    call :log "    Using staged installer: !MIKTEX_EXE!"
-    call :log "    NOTE: A progress window will appear - this is normal for MikTeX."
-    "!MIKTEX_EXE!" --unattended --shared --auto-install=yes --paper-size=Letter
-    call :result !errorlevel!
+    set "MIKTEX_EXE="
+    for /f "delims=" %%f in ('dir /b "%INSTDIR%\basic-miktex-*-x64.exe" 2^>nul') do set "MIKTEX_EXE=%INSTDIR%\%%f"
+    if not defined MIKTEX_EXE (
+        call :log "    NOT FOUND in Installers\"
+        call :log "    Download from: https://miktex.org/download"
+        call :log "    Stage as: Installers\basic-miktex-x.x-x64.exe"
+        call :log "    [SKIP]"
+    ) else (
+        call :log "    Using staged installer: !MIKTEX_EXE!"
+        call :log "    NOTE: MikTeX runs asynchronously - a progress window will appear."
+        start /wait "" "!MIKTEX_EXE!" --unattended --shared --auto-install=yes --paper-size=Letter
+        call :result !errorlevel!
+    )
 )
 echo.
 
@@ -451,7 +452,7 @@ if exist "%ProgramFiles%\texstudio\texstudio.exe" (
     if defined TXS_EXE (
         if exist "!TXS_EXE!" (
             call :log "    Installing silently..."
-            "!TXS_EXE!" /S /NORESTART
+            start /wait "" "!TXS_EXE!" /S /NORESTART
             call :result !errorlevel!
         )
     )
@@ -487,7 +488,7 @@ if exist "!VSP_PS!" del /q "!VSP_PS!"
 echo $zip = "!VSP_ZIP!">> "!VSP_PS!"
 echo $dest = "C:\">> "!VSP_PS!"
 echo Expand-Archive -Path $zip -DestinationPath $dest -Force>> "!VSP_PS!"
-echo $extracted = Get-ChildItem "C:\" -Directory ^| Where-Object { $_.Name -like "OpenVSP-3.50.4*" } ^| Select-Object -First 1>> "!VSP_PS!"
+echo $extracted = Get-ChildItem "C:\" -Directory ^| Where-Object { $_.Name -like "OpenVSP-3.50.4*" } ^| Select-Object -First 1 >> "!VSP_PS!"
 echo if ($extracted -and $extracted.FullName -ne "C:\OpenVSP-3.50.4") { Rename-Item $extracted.FullName "OpenVSP-3.50.4" }>> "!VSP_PS!"
 echo $ws = New-Object -ComObject WScript.Shell>> "!VSP_PS!"
 echo $desk = [Environment]::GetFolderPath("CommonDesktopDirectory")>> "!VSP_PS!"
