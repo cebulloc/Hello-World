@@ -221,10 +221,14 @@ if exist "%ProgramFiles%\Microsoft VS Code\Code.exe" (
         set "VSCODE_TASKS=desktopicon,addcontextmenufiles,addcontextmenufolders,associatewithfiles,addtopath"
         "!VSCODE_EXE!" /VERYSILENT /NORESTART "/MERGETASKS=!VSCODE_TASKS!"
         call :result !errorlevel!
+        :: Kill any Code.exe so there's no IPC conflict with a non-admin window,
+        :: then use --no-sandbox to allow Electron renderer to start under admin.
+        taskkill /f /im Code.exe >nul 2>&1
+        timeout /t 2 /nobreak >nul
         call :log "    Installing extensions: Python, Remote-SSH, GitLens..."
-        "%ProgramFiles%\Microsoft VS Code\bin\code.cmd" --install-extension ms-python.python >> "%LOGFILE%" 2>&1
-        "%ProgramFiles%\Microsoft VS Code\bin\code.cmd" --install-extension ms-vscode-remote.remote-ssh >> "%LOGFILE%" 2>&1
-        "%ProgramFiles%\Microsoft VS Code\bin\code.cmd" --install-extension eamodio.gitlens >> "%LOGFILE%" 2>&1
+        "%ProgramFiles%\Microsoft VS Code\bin\code.cmd" --install-extension ms-python.python --no-sandbox >> "%LOGFILE%" 2>&1
+        "%ProgramFiles%\Microsoft VS Code\bin\code.cmd" --install-extension ms-vscode-remote.remote-ssh --no-sandbox >> "%LOGFILE%" 2>&1
+        "%ProgramFiles%\Microsoft VS Code\bin\code.cmd" --install-extension eamodio.gitlens --no-sandbox >> "%LOGFILE%" 2>&1
         call :result !errorlevel!
     )
 )
@@ -234,39 +238,44 @@ call :log "    Configuring SSH wrapper (PuTTY-CAC/Pageant for Remote-SSH)..."
 set "SSH_WRAPPER_SRC=%INSTDIR%\ssh-wrapper.bat"
 set "SSH_WRAPPER_DEST=%USERPROFILE%\ssh-wrapper.bat"
 
+:: Flatten SSH wrapper section - echo lines with ^| inside else blocks have ^
+:: consumed at block-parse time, leaving bare | at execution time (CMD tries to pipe).
+:: Same fix as OpenVSP: use goto at top level so echo lines run with no enclosing block.
+set "SSH_OK=1"
 if not exist "!SSH_WRAPPER_SRC!" (
     call :log "    [WARN] ssh-wrapper.bat not found in Installers\ - skipping SSH config."
-) else (
-    copy /Y "!SSH_WRAPPER_SRC!" "!SSH_WRAPPER_DEST!" >nul 2>&1
-    call :log "    Copied ssh-wrapper.bat to !SSH_WRAPPER_DEST!"
-
-    :: Ensure .ssh dir and blank config exist
-    set "SSH_DIR=%USERPROFILE%\.ssh"
-    if not exist "!SSH_DIR!" mkdir "!SSH_DIR!"
-    if not exist "!SSH_DIR!\config" (
-        echo # SSH config - add hosts via VS Code F1 ^> Remote-SSH: Add New Host > "!SSH_DIR!\config"
-        call :log "    Created blank .ssh\config"
-    ) else (
-        call :log "    .ssh\config already exists - skipping"
-    )
-
-    :: Write/merge remote.SSH.path into VS Code settings.json
-    set "VSCODE_CFG=%APPDATA%\Code\User"
-    set "VSCODE_SETTINGS=!VSCODE_CFG!\settings.json"
-    if not exist "!VSCODE_CFG!" mkdir "!VSCODE_CFG!"
-    set "SSH_WRAP_PS=%TEMP%\set_ssh_wrapper.ps1"
-    if exist "!SSH_WRAP_PS!" del /q "!SSH_WRAP_PS!"
-    echo $wrapPath = '!SSH_WRAPPER_DEST:\=\\!'>> "!SSH_WRAP_PS!"
-    echo $settingsPath = '!VSCODE_SETTINGS:\=\\!'>> "!SSH_WRAP_PS!"
-    echo if (-not (Test-Path $settingsPath)) ^{ '{}' ^| Set-Content $settingsPath -Encoding UTF8 ^}>> "!SSH_WRAP_PS!"
-    echo $raw = Get-Content $settingsPath -Raw>> "!SSH_WRAP_PS!"
-    echo try ^{ $json = $raw ^| ConvertFrom-Json ^} catch ^{ $json = [PSCustomObject]@^{^} ^}>> "!SSH_WRAP_PS!"
-    echo $json ^| Add-Member -Force -NotePropertyName 'remote.SSH.path' -NotePropertyValue $wrapPath>> "!SSH_WRAP_PS!"
-    echo $json ^| ConvertTo-Json -Depth 10 ^| Set-Content $settingsPath -Encoding UTF8>> "!SSH_WRAP_PS!"
-    powershell -NoProfile -ExecutionPolicy Bypass -File "!SSH_WRAP_PS!" >> "%LOGFILE%" 2>&1
-    call :result !errorlevel!
-    call :log "    VS Code settings.json updated: remote.SSH.path = !SSH_WRAPPER_DEST!"
+    set "SSH_OK=0"
 )
+if "!SSH_OK!"=="0" goto :ssh_skip
+
+copy /Y "!SSH_WRAPPER_SRC!" "!SSH_WRAPPER_DEST!" >nul 2>&1
+call :log "    Copied ssh-wrapper.bat to !SSH_WRAPPER_DEST!"
+
+set "SSH_DIR=%USERPROFILE%\.ssh"
+if not exist "!SSH_DIR!" mkdir "!SSH_DIR!"
+if not exist "!SSH_DIR!\config" (
+    echo # SSH config - add hosts via VS Code F1 ^> Remote-SSH: Add New Host > "!SSH_DIR!\config"
+    call :log "    Created blank .ssh\config"
+) else (
+    call :log "    .ssh\config already exists - skipping"
+)
+
+set "VSCODE_SETTINGS=%APPDATA%\Code\User\settings.json"
+if not exist "%APPDATA%\Code\User" mkdir "%APPDATA%\Code\User"
+set "SSH_WRAP_PS=%TEMP%\set_ssh_wrapper.ps1"
+if exist "!SSH_WRAP_PS!" del /q "!SSH_WRAP_PS!"
+echo $wrapPath = '!SSH_WRAPPER_DEST:\=\\!'>> "!SSH_WRAP_PS!"
+echo $settingsPath = '!VSCODE_SETTINGS:\=\\!'>> "!SSH_WRAP_PS!"
+echo if (-not (Test-Path $settingsPath)) ^{ '{}' ^| Set-Content $settingsPath -Encoding UTF8 ^}>> "!SSH_WRAP_PS!"
+echo $raw = Get-Content $settingsPath -Raw>> "!SSH_WRAP_PS!"
+echo try ^{ $json = $raw ^| ConvertFrom-Json ^} catch ^{ $json = [PSCustomObject]@^{^} ^}>> "!SSH_WRAP_PS!"
+echo $json ^| Add-Member -Force -NotePropertyName 'remote.SSH.path' -NotePropertyValue $wrapPath>> "!SSH_WRAP_PS!"
+echo $json ^| ConvertTo-Json -Depth 10 ^| Set-Content $settingsPath -Encoding UTF8>> "!SSH_WRAP_PS!"
+powershell -NoProfile -ExecutionPolicy Bypass -File "!SSH_WRAP_PS!" >> "%LOGFILE%" 2>&1
+call :result !errorlevel!
+call :log "    VS Code settings.json updated: remote.SSH.path = !SSH_WRAPPER_DEST!"
+
+:ssh_skip
 echo.
 
 :: ---------------------------------------------------------------
