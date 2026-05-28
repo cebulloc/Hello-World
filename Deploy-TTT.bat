@@ -129,8 +129,10 @@ goto :main
     set "_GHOUT=%TEMP%\gh_asset_url.txt"
     if exist "%_GHPS%" del /q "%_GHPS%"
     if exist "%_GHOUT%" del /q "%_GHOUT%"
-    echo $rel = Invoke-RestMethod "https://api.github.com/repos/%GH_REPO%/releases/latest"> "%_GHPS%"
-    echo $url = ($rel.assets ^| Where-Object ^{ $_.name -like "%GH_PAT%" ^} ^| Select-Object -ExpandProperty browser_download_url -First 1)>> "%_GHPS%"
+    echo $rel = $null> "%_GHPS%"
+    echo try ^{ $rel = Invoke-RestMethod "https://api.github.com/repos/%GH_REPO%/releases/latest" -ErrorAction Stop ^} catch ^{ ^}>> "%_GHPS%"
+    echo if (-not $rel) ^{ $rels = Invoke-RestMethod "https://api.github.com/repos/%GH_REPO%/releases" -ErrorAction SilentlyContinue; $rel = $rels ^| Where-Object ^{ -not $_.prerelease -and -not $_.draft ^} ^| Select-Object -First 1 ^}>> "%_GHPS%"
+    echo $url = ($rel.assets ^| Where-Object ^{ $_.name -like "%GH_PAT%" ^} ^| Select-Object -First 1).browser_download_url>> "%_GHPS%"
     echo if ($url) ^{ $url.Trim() ^| Out-File -FilePath "%_GHOUT%" -Encoding ASCII -NoNewline ^}>> "%_GHPS%"
     powershell -NoProfile -ExecutionPolicy Bypass -File "%_GHPS%" >> "%LOGFILE%" 2>&1
     if exist "%_GHOUT%" set /p GH_RESULT= < "%_GHOUT%"
@@ -140,9 +142,26 @@ goto :main
 :main
 :: ================================================================
 
+:: Block concurrent instances - multiple elevated CMDs can spawn if the
+:: script is run several times quickly; they all see no DONE_FLAG (written
+:: only at the end) and run simultaneously, interleaving log output and
+:: colliding on installs. A lock file prevents this.
+set "LOCK_FILE=%TEMP%\TTT_Deploy_%COMPUTERNAME%.lock"
+if exist "%LOCK_FILE%" (
+    echo.
+    echo [!] A deployment is already running on this machine.
+    echo [!] Lock: %LOCK_FILE%
+    echo [!] If no deployment is running ^(stale lock^), delete the file and retry.
+    echo.
+    pause
+    exit /b 1
+)
+echo %DATE% %TIME% > "%LOCK_FILE%"
+
 :: Check if deployment already completed successfully on this machine
 set "DONE_FLAG=%TEMP%\TTT_Deploy_%COMPUTERNAME%_COMPLETE.flag"
 if exist "%DONE_FLAG%" (
+    del /q "%LOCK_FILE%" >nul 2>&1
     echo.
     echo [INFO] Deployment was already completed on this machine.
     echo [INFO] Flag: %DONE_FLAG%
@@ -337,6 +356,13 @@ echo.
 ::  5. PUTTY-CAC (NoMoreFood, latest x64 MSI)
 :: ---------------------------------------------------------------
 call :log "[5/12] PuTTY-CAC (NoMoreFood, latest)"
+set "PUTTY_SKIP=0"
+if exist "%ProgramFiles%\PuTTY\putty.exe" set "PUTTY_SKIP=1"
+if exist "%ProgramFiles(x86)%\PuTTY\putty.exe" set "PUTTY_SKIP=1"
+if "!PUTTY_SKIP!"=="1" (
+    call :log "    Already installed - skipping."
+    goto :putty_skip
+)
 set "PUTTY_MSI="
 for /f "delims=" %%f in ('dir /b "%INSTDIR%\puttycac-*-x64.msi" 2^>nul') do set "PUTTY_MSI=%INSTDIR%\%%f"
 
@@ -368,6 +394,7 @@ if defined PUTTY_MSI (
         call :result !PUTTY_RC!
     )
 )
+:putty_skip
 echo.
 
 :: ---------------------------------------------------------------
@@ -478,7 +505,7 @@ call :log "[9/12] OpenVSP 3.50.4"
 set "VSP_DEST=C:\OpenVSP-3.50.4"
 set "VSP_ZIP=%INSTDIR%\OpenVSP-3.50.4-win64-Python3.13.zip"
 
-if exist "!VSP_DEST!\vsp.exe" (
+if exist "!VSP_DEST!\" (
     call :log "    Already installed at !VSP_DEST! - skipping."
     goto :vsp_skip
 )
@@ -602,6 +629,7 @@ echo.
 :: ---------------------------------------------------------------
 echo ================================================================
 call :log "DEPLOYMENT COMPLETE: %DATE% %TIME%"
+del /q "%LOCK_FILE%" >nul 2>&1
 echo COMPLETED > "%DONE_FLAG%"
 echo   Log: %LOGFILE%
 echo ================================================================
