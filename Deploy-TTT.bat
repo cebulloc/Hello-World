@@ -178,13 +178,13 @@ if !errorlevel! neq 0 (
 :: Check if deployment already completed successfully on this machine
 set "DONE_FLAG=%TEMP%\TTT_Deploy_%COMPUTERNAME%_COMPLETE.flag"
 if exist "%DONE_FLAG%" (
-    rd /q "%LOCK_FILE%" >nul 2>&1
     echo.
     echo [INFO] Deployment was already completed on this machine.
     echo [INFO] Flag: %DONE_FLAG%
     echo [INFO] Delete that file and re-run to force a fresh deployment.
     echo.
     pause
+    rd /q "%LOCK_FILE%" >nul 2>&1
     exit /b 0
 )
 
@@ -536,7 +536,7 @@ if not exist "!VSP_ZIP!" (
 
 :: All echo/powershell lines run at top level - no block nesting, no redirect issues
 call :log "    Using staged zip."
-set "VSP_PS=C:\vsp_install.ps1"
+set "VSP_PS=%TEMP%\vsp_install.ps1"
 if exist "!VSP_PS!" del /q "!VSP_PS!"
 echo $zip = "!VSP_ZIP!">> "!VSP_PS!"
 echo $dest = "C:\">> "!VSP_PS!"
