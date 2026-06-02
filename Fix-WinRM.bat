@@ -35,13 +35,26 @@ pause
 :: ================================================================
 cls
 echo.
-echo  [STEP 1/9]  Restore WinRM defaults
+echo  [STEP 1/9]  Reset WinRM to a clean state
 echo  ----------------------------------------------------------
-echo  winrm invoke Restore winrm/config@{}
+echo  Deletes any existing HTTP and HTTPS listeners so quickconfig
+echo  can rebuild them from scratch.  (winrm invoke Restore is not
+echo  a valid action - this is the correct way to start clean.)
 echo.
-winrm invoke Restore winrm/config@{}
+
+echo  Removing HTTP listener (ignore "not found" errors)...
+winrm delete winrm/config/Listener?Address=*+Transport=HTTP  2>nul
+echo  Removing HTTPS listener (ignore "not found" errors)...
+winrm delete winrm/config/Listener?Address=*+Transport=HTTPS 2>nul
+
 echo.
-echo  Done. Review output above.
+echo  Resetting core WinRM config values to Windows defaults...
+winrm set winrm/config @{MaxEnvelopeSizekb="500";MaxTimeoutms="60000";MaxBatchItems="32000"}
+winrm set winrm/config/service @{AllowUnencrypted="false"}
+winrm set winrm/config/service/auth @{Basic="false";Kerberos="true";Negotiate="true";Certificate="false"}
+
+echo.
+echo  Done. All existing listeners removed - ready for quickconfig.
 pause
 
 :: ================================================================
