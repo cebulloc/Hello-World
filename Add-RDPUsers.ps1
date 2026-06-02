@@ -32,10 +32,11 @@ function Write-Color {
 Write-Banner
 
 $serversRaw = Read-Host '  Servers  (comma-separated)'
-$usersRaw   = Read-Host '  Users    (comma-separated, e.g. DOMAIN\user1, DOMAIN\user2)'
+$usersRaw   = Read-Host '  Users    (comma-separated, bare usernames - ndc\ prefix added automatically)'
 
 $servers = $serversRaw -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' }
-$users   = $usersRaw   -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' }
+$users   = $usersRaw   -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' } |
+           ForEach-Object { if ($_ -match '[\\/]') { $_ } else { "ndc\$_" } }
 
 if ($servers.Count -eq 0) { Write-Color '  [ERROR] No servers entered.' Red; Read-Host; exit 1 }
 if ($users.Count   -eq 0) { Write-Color '  [ERROR] No users entered.'   Red; Read-Host; exit 1 }
@@ -66,7 +67,7 @@ foreach ($server in $servers) {
     foreach ($user in $users) {
         $display = $user.PadRight(30)
         try {
-            $status = Invoke-Command -ComputerName $server -ErrorAction Stop -ScriptBlock {
+            $status = Invoke-Command -ComputerName $server -UseSSL -ErrorAction Stop -ScriptBlock {
                 param($u, $grp)
 
                 # Normalize: strip domain prefix for bare-name comparison

@@ -39,12 +39,10 @@ net start winrm 2>nul
 echo.
 
 echo  Removing HTTP listener (OK if not found)...
-call winrm delete winrm/config/Listener?Address=*+Transport=HTTP 2>nul
-echo  Done.
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Remove-WSManInstance 'winrm/config/Listener' @{Address='*';Transport='HTTP'} -ErrorAction SilentlyContinue; Write-Host '  Done.'"
 
 echo  Removing HTTPS listener (OK if not found)...
-call winrm delete winrm/config/Listener?Address=*+Transport=HTTPS 2>nul
-echo  Done.
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Remove-WSManInstance 'winrm/config/Listener' @{Address='*';Transport='HTTPS'} -ErrorAction SilentlyContinue; Write-Host '  Done.'"
 echo.
 
 echo  Restarting WinRM service to apply clean state...
@@ -168,12 +166,7 @@ echo.
 set /p CONFIRM_DEL=  Remove HTTP listener now? (Y/N):
 if /i "!CONFIRM_DEL!"=="Y" (
     echo.
-    call winrm delete winrm/config/Listener?Address=*+Transport=HTTP
-    if !errorlevel! equ 0 (
-        echo  [OK] HTTP listener removed.
-    ) else (
-        echo  [NOTE] HTTP listener was not found - nothing to remove.
-    )
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Remove-WSManInstance 'winrm/config/Listener' @{Address='*';Transport='HTTP'} -ErrorAction SilentlyContinue; Write-Host '  [OK] HTTP listener removed (or was not found).'"
 ) else (
     echo  Skipped.
 )
