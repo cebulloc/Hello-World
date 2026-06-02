@@ -84,6 +84,15 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
 }
 
 # ================================================================
+#  RESOLVE TARGET USER PROFILE
+#  When elevated, $targetProfile points to the admin account.
+#  Resolve the actual interactive user's profile instead.
+# ================================================================
+$_lUser = (Get-CimInstance Win32_ComputerSystem -EA SilentlyContinue).UserName -replace '^.*\\'
+$targetProfile = if ($_lUser -and (Test-Path "C:\Users\$_lUser")) { "C:\Users\$_lUser" } else { $targetProfile }
+$targetAppData  = "$targetProfile\AppData\Roaming"
+
+# ================================================================
 #  PATHS  (script sits flat in the same folder as the installers)
 # ================================================================
 $scriptDir = $PSScriptRoot
@@ -146,7 +155,7 @@ $ProgressPreference = 'SilentlyContinue'
 #  [1/12]  MINIFORGE3  (Python 3.13 + scientific packages)
 # ================================================================
 Invoke-Section '[1/12] Miniforge3 (Python 3.13 + packages)' {
-    $dest = "$env:USERPROFILE\Miniforge3"
+    $dest = "$targetProfile\Miniforge3"
 
     if (Test-Path "$dest\Scripts\conda.exe") {
         Write-Log "    Already installed at $dest - skipping base install."
@@ -177,7 +186,7 @@ Invoke-Section '[1/12] Miniforge3 (Python 3.13 + packages)' {
 
         Write-Log '    Writing .condarc (conda-forge only, no defaults)...'
         "channels:`n  - conda-forge`nchannel_priority: strict`nauto_activate_base: true" |
-            Set-Content "$env:USERPROFILE\.condarc" -Encoding UTF8
+            Set-Content "$targetProfile\.condarc" -Encoding UTF8
     }
 
     Write-Log '    Installing scientific packages via conda (numpy scipy pandas matplotlib plotly dash seaborn simpy)...'
@@ -227,7 +236,7 @@ Invoke-Section '[2/12] Visual Studio Code + extensions + SSH wrapper' {
     }
 
     $wrapSrc  = "$instDir\ssh-wrapper.bat"
-    $binDir   = "$env:USERPROFILE\bin"
+    $binDir   = "$targetProfile\bin"
     $wrapDest = "$binDir\ssh-wrapper.bat"
 
     if (-not (Test-Path $wrapSrc)) {
@@ -239,7 +248,7 @@ Invoke-Section '[2/12] Visual Studio Code + extensions + SSH wrapper' {
     Copy-Item $wrapSrc $wrapDest -Force
     Write-Log "    Copied ssh-wrapper.bat to $wrapDest"
 
-    $sshDir = "$env:USERPROFILE\.ssh"
+    $sshDir = "$targetProfile\.ssh"
     if (-not (Test-Path $sshDir)) { New-Item -Path $sshDir -ItemType Directory | Out-Null }
 
     $sshConfig = "$sshDir\config"
@@ -250,7 +259,7 @@ Invoke-Section '[2/12] Visual Studio Code + extensions + SSH wrapper' {
         Write-Log '    .ssh\config already exists - skipping'
     }
 
-    $settingsPath = "$env:APPDATA\Code\User\settings.json"
+    $settingsPath = "$targetAppData\Code\User\settings.json"
     $settingsDir  = Split-Path $settingsPath
     if (-not (Test-Path $settingsDir)) { New-Item -Path $settingsDir -ItemType Directory | Out-Null }
 
@@ -452,7 +461,7 @@ Invoke-Section '[8/12] TeXstudio (latest)' {
 #  [9/12]  POETRY  (Python dependency manager)
 # ================================================================
 Invoke-Section '[9/12] Poetry (Python dependency manager)' {
-    $poetryExe = "$env:APPDATA\Python\Scripts\poetry.exe"
+    $poetryExe = "$targetAppData\Python\Scripts\poetry.exe"
     if (Test-Path $poetryExe) {
         Write-Log '    Already installed - skipping.'
         return
@@ -470,14 +479,14 @@ Invoke-Section '[9/12] Poetry (Python dependency manager)' {
         Invoke-WebRequest 'https://install.python-poetry.org' -OutFile $pyScript -UseBasicParsing
     }
 
-    $python = "$env:USERPROFILE\Miniforge3\python.exe"
+    $python = "$targetProfile\Miniforge3\python.exe"
     if (-not (Test-Path $python)) { $python = 'python' }
 
     Write-Log '    Running Poetry installer...'
     $proc = Start-Process -FilePath $python -ArgumentList $pyScript -Wait -PassThru
     Write-Result $proc.ExitCode
 
-    $poetryBin = "$env:APPDATA\Python\Scripts"
+    $poetryBin = "$targetAppData\Python\Scripts"
     if (Test-Path $poetryBin) {
         $env:PATH = "$poetryBin;$env:PATH"
         Write-Log "    Poetry added to session PATH: $poetryBin"

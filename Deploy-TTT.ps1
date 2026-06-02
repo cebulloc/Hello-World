@@ -94,6 +94,15 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
 }
 
 # ================================================================
+#  RESOLVE TARGET USER PROFILE
+#  When elevated, $targetProfile points to the admin account.
+#  Resolve the actual interactive user's profile instead.
+# ================================================================
+$_lUser = (Get-CimInstance Win32_ComputerSystem -EA SilentlyContinue).UserName -replace '^.*\\'
+$targetProfile = if ($_lUser -and (Test-Path "C:\Users\$_lUser")) { "C:\Users\$_lUser" } else { $targetProfile }
+$targetAppData  = "$targetProfile\AppData\Roaming"
+
+# ================================================================
 #  PATHS
 # ================================================================
 $scriptDir = $PSScriptRoot
@@ -184,7 +193,7 @@ $ProgressPreference = 'SilentlyContinue'
 #  [1/12]  MINIFORGE3  (Python 3.13, register as default)
 # ================================================================
 Invoke-Section '[1/12] Miniforge3 (Python 3.13, register as default)' {
-    $dest = "$env:USERPROFILE\Miniforge3"
+    $dest = "$targetProfile\Miniforge3"
 
     if (Test-Path "$dest\Scripts\conda.exe") {
         Write-Log "    Already installed at $dest - skipping."
@@ -217,7 +226,7 @@ Invoke-Section '[1/12] Miniforge3 (Python 3.13, register as default)' {
 
     Write-Log '    Writing .condarc (conda-forge only, no defaults)...'
     "channels:`n  - conda-forge`nchannel_priority: strict`nauto_activate_base: true" |
-        Set-Content "$env:USERPROFILE\.condarc" -Encoding UTF8
+        Set-Content "$targetProfile\.condarc" -Encoding UTF8
 
     Write-Log '    Python 3.13 ready. Open a new terminal and run: conda activate base'
 }
@@ -259,7 +268,7 @@ Invoke-Section '[2/12] Visual Studio Code + extensions + SSH wrapper' {
 
     # SSH wrapper
     $wrapSrc  = "$instDir\ssh-wrapper.bat"
-    $binDir   = "$env:USERPROFILE\bin"
+    $binDir   = "$targetProfile\bin"
     $wrapDest = "$binDir\ssh-wrapper.bat"
 
     if (-not (Test-Path $wrapSrc)) {
@@ -271,7 +280,7 @@ Invoke-Section '[2/12] Visual Studio Code + extensions + SSH wrapper' {
     Copy-Item $wrapSrc $wrapDest -Force
     Write-Log "    Copied ssh-wrapper.bat to $wrapDest"
 
-    $sshDir = "$env:USERPROFILE\.ssh"
+    $sshDir = "$targetProfile\.ssh"
     if (-not (Test-Path $sshDir)) {
         New-Item -Path $sshDir -ItemType Directory | Out-Null
     }
@@ -284,7 +293,7 @@ Invoke-Section '[2/12] Visual Studio Code + extensions + SSH wrapper' {
         Write-Log '    .ssh\config already exists - skipping'
     }
 
-    $settingsPath = "$env:APPDATA\Code\User\settings.json"
+    $settingsPath = "$targetAppData\Code\User\settings.json"
     $settingsDir  = Split-Path $settingsPath
     if (-not (Test-Path $settingsDir)) {
         New-Item -Path $settingsDir -ItemType Directory | Out-Null
