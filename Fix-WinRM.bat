@@ -1,6 +1,7 @@
 @echo off
 setlocal EnableDelayedExpansion
 title WinRM HTTPS Setup
+color 0A
 
 :: ================================================================
 ::  ELEVATION CHECK
@@ -15,196 +16,177 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-:: ================================================================
-::  INTRO
-:: ================================================================
-cls
 echo.
 echo  ==============================================================
-echo   WinRM HTTPS Configuration Script
-echo   Run from Elevated CMD - NOT PowerShell
+echo   WinRM HTTPS Configuration  -  Elevated CMD
 echo  ==============================================================
 echo.
-echo  This script will walk through each step with a pause so you
-echo  can review output before continuing.
+echo  Each step will pause so you can review output before moving on.
 echo.
 pause
 
 :: ================================================================
-::  STEP 1 - Restore WinRM to clean defaults
+::  STEP 1 - Remove existing listeners, restart service
 :: ================================================================
-cls
 echo.
-echo  [STEP 1/9]  Reset WinRM to a clean state
-echo  ----------------------------------------------------------
-echo  Deletes any existing HTTP and HTTPS listeners so quickconfig
-echo  can rebuild them from scratch.  (winrm invoke Restore is not
-echo  a valid action - this is the correct way to start clean.)
+echo  ============================================================
+echo  [STEP 1/9]  Clear existing WinRM listeners and restart service
+echo  ============================================================
 echo.
 
-echo  Removing HTTP listener (ignore "not found" errors)...
-winrm delete winrm/config/Listener?Address=*+Transport=HTTP  2>nul
-echo  Removing HTTPS listener (ignore "not found" errors)...
+echo  Stopping WinRM service...
+net stop winrm
+echo.
+
+echo  Removing HTTP listener (OK if not found)...
+winrm delete winrm/config/Listener?Address=*+Transport=HTTP 2>nul
+echo  Done.
+
+echo  Removing HTTPS listener (OK if not found)...
 winrm delete winrm/config/Listener?Address=*+Transport=HTTPS 2>nul
-
+echo  Done.
 echo.
-echo  Resetting core WinRM config values to Windows defaults...
-winrm set winrm/config @{MaxEnvelopeSizekb="500";MaxTimeoutms="60000";MaxBatchItems="32000"}
-winrm set winrm/config/service @{AllowUnencrypted="false"}
-winrm set winrm/config/service/auth @{Basic="false";Kerberos="true";Negotiate="true";Certificate="false"}
 
+echo  Starting WinRM service...
+net start winrm
 echo.
-echo  Done. All existing listeners removed - ready for quickconfig.
-pause
+
+echo  ---- Step 1 complete. Press any key to continue. ----
+pause >nul
 
 :: ================================================================
 ::  STEP 2 - Check current settings
 :: ================================================================
-cls
 echo.
+echo  ============================================================
 echo  [STEP 2/9]  Check current WinRM configuration
-echo  ----------------------------------------------------------
-echo  winrm get winrm/config
+echo  ============================================================
 echo.
 winrm get winrm/config
 echo.
-echo  Done. Review output above.
-pause
+echo  ---- Step 2 complete. Press any key to continue. ----
+pause >nul
 
 :: ================================================================
 ::  STEP 3 - Quick config for HTTPS
 :: ================================================================
-cls
 echo.
-echo  [STEP 3/9]  Run quickconfig for HTTPS
-echo  ----------------------------------------------------------
+echo  ============================================================
+echo  [STEP 3/9]  Run quickconfig for HTTPS (auto-answer Y)
+echo  ============================================================
 echo  NOTE: A valid certificate must already exist on this machine.
 echo        The cert CN must match the hostname used to connect.
 echo.
-echo  winrm quickconfig -transport:https
+echo y | winrm quickconfig -transport:https
 echo.
-winrm quickconfig -transport:https
-echo.
-echo  Done. Review output above.
-pause
+echo  ---- Step 3 complete. Press any key to continue. ----
+pause >nul
 
 :: ================================================================
 ::  STEP 4 - Confirm listeners
 :: ================================================================
-cls
 echo.
+echo  ============================================================
 echo  [STEP 4/9]  Confirm WinRM listeners
-echo  ----------------------------------------------------------
-echo  winrm enumerate winrm/config/listener
+echo  ============================================================
 echo.
 winrm enumerate winrm/config/listener
 echo.
-echo  You should see a listener with Transport=HTTPS on Port 5986.
-pause
+echo  You should see Transport=HTTPS on Port=5986 above.
+echo.
+echo  ---- Step 4 complete. Press any key to continue. ----
+pause >nul
 
 :: ================================================================
 ::  STEP 5 - Confirm certificate thumbprint
 :: ================================================================
-cls
 echo.
-echo  [STEP 5/9]  Confirm certificate (thumbprint should be populated)
-echo  ----------------------------------------------------------
-echo  winrm get http://schemas.microsoft.com/wbem/wsman/1/config
+echo  ============================================================
+echo  [STEP 5/9]  Confirm certificate thumbprint
+echo  ============================================================
 echo.
 winrm get http://schemas.microsoft.com/wbem/wsman/1/config
 echo.
-echo  Look for CertificateThumbprint under the HTTPS listener.
-pause
+echo  Look for CertificateThumbprint - it should NOT be empty.
+echo.
+echo  ---- Step 5 complete. Press any key to continue. ----
+pause >nul
 
 :: ================================================================
-::  STEP 6 - Create firewall rule for port 5986
+::  STEP 6 - Create firewall rule for 5986
 :: ================================================================
-cls
 echo.
-echo  [STEP 6/9]  Create inbound firewall rule for WinRM HTTPS (5986)
-echo  ----------------------------------------------------------
-echo  Calling PowerShell for New-NetFirewallRule...
+echo  ============================================================
+echo  [STEP 6/9]  Create inbound firewall rule for port 5986
+echo  ============================================================
 echo.
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ^
-    "New-NetFirewallRule -DisplayName '5986 WinRM Listener HTTPS' ^
-     -Direction Inbound -LocalPort 5986 -Protocol TCP -Action Allow ^
-     -Profile Domain,Private,Public -PolicyStore PersistentStore ^
-     -ErrorAction SilentlyContinue; ^
-     if ($?) { Write-Host '  [OK] Firewall rule created.' -ForegroundColor Green } ^
-     else { Write-Host '  [NOTE] Rule may already exist.' -ForegroundColor Yellow }"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "New-NetFirewallRule -DisplayName '5986 WinRM Listener HTTPS' -Direction Inbound -LocalPort 5986 -Protocol TCP -Action Allow -Profile Domain,Private,Public -PolicyStore PersistentStore -ErrorAction SilentlyContinue | Out-Null; Write-Host '  Firewall rule created (or already existed).'"
 echo.
-pause
+echo  ---- Step 6 complete. Press any key to continue. ----
+pause >nul
 
 :: ================================================================
 ::  STEP 7 - Verify firewall rule
 :: ================================================================
-cls
 echo.
-echo  [STEP 7/9]  Verify firewall rule for port 5986
-echo  ----------------------------------------------------------
-echo  Calling PowerShell to check...
+echo  ============================================================
+echo  [STEP 7/9]  Verify firewall rule exists for port 5986
+echo  ============================================================
 echo.
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ^
-    "Get-NetFirewallPortFilter | Where-Object { $_.LocalPort -eq 5986 } | Get-NetFirewallRule | ^
-     Format-Table DisplayName, Enabled, Direction, Action, Profile -AutoSize"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Get-NetFirewallPortFilter | Where-Object { $_.LocalPort -eq 5986 } | Get-NetFirewallRule | Format-Table DisplayName, Enabled, Direction, Action, Profile -AutoSize"
 echo.
-pause
+echo  ---- Step 7 complete. Press any key to continue. ----
+pause >nul
 
 :: ================================================================
-::  STEP 8 - Test PSSession (interactive)
+::  STEP 8 - Test PSSession
 :: ================================================================
-cls
 echo.
+echo  ============================================================
 echo  [STEP 8/9]  Test HTTPS connection with Enter-PSSession
-echo  ----------------------------------------------------------
+echo  ============================================================
 echo  The hostname MUST exactly match the Common Name (CN) in the cert.
 echo.
-set /p TEST_HOST=  Enter the fully-qualified hostname to test (e.g. e4-arch1.ndc.nasa.gov):
+set /p TEST_HOST=  Enter fully-qualified hostname to test:
 echo.
-echo  Opening Enter-PSSession -ComputerName !TEST_HOST! -UseSSL
-echo  Type "exit" inside the session to return here.
+echo  Connecting to !TEST_HOST! - type "exit" to return here...
 echo.
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ^
-    "Enter-PSSession -ComputerName '!TEST_HOST!' -UseSSL"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Enter-PSSession -ComputerName '!TEST_HOST!' -UseSSL"
 echo.
-echo  Session closed.
-pause
+echo  ---- Step 8 complete. Press any key to continue. ----
+pause >nul
 
 :: ================================================================
-::  STEP 9 - Remove unused HTTP 5985 listener
+::  STEP 9 - Remove HTTP 5985 listener
 :: ================================================================
-cls
 echo.
-echo  [STEP 9/9]  Remove HTTP listener on port 5985
-echo  ----------------------------------------------------------
+echo  ============================================================
+echo  [STEP 9/9]  Remove unused HTTP listener on port 5985
+echo  ============================================================
 echo.
-set /p CONFIRM_DEL=  Remove the HTTP listener? (Y/N):
+set /p CONFIRM_DEL=  Remove HTTP listener now? (Y/N):
 if /i "!CONFIRM_DEL!"=="Y" (
-    echo.
-    echo  winrm delete winrm/config/Listener?Address=*+Transport=HTTP
     echo.
     winrm delete winrm/config/Listener?Address=*+Transport=HTTP
     if !errorlevel! equ 0 (
-        echo.
         echo  [OK] HTTP listener removed.
     ) else (
-        echo.
-        echo  [NOTE] HTTP listener may not have existed - that is fine.
+        echo  [NOTE] HTTP listener was not found - nothing to remove.
     )
 ) else (
-    echo  Skipped - HTTP listener left in place.
+    echo  Skipped.
 )
-echo.
 
 :: ================================================================
 ::  DONE
 :: ================================================================
 echo.
 echo  ==============================================================
-echo   WinRM HTTPS setup complete.
-echo   Run the following to confirm final listener state:
-echo     winrm enumerate winrm/config/listener
+echo   All 9 steps complete.
+echo   Final listener check:
 echo  ==============================================================
+echo.
+winrm enumerate winrm/config/listener
 echo.
 pause
 endlocal
