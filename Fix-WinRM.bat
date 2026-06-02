@@ -34,20 +34,21 @@ echo  [STEP 1/9]  Clear existing WinRM listeners and restart service
 echo  ============================================================
 echo.
 
-echo  Stopping WinRM service...
-net stop winrm
+echo  Ensuring WinRM service is running before issuing commands...
+net start winrm 2>nul
 echo.
 
 echo  Removing HTTP listener (OK if not found)...
-winrm delete winrm/config/Listener?Address=*+Transport=HTTP 2>nul
+call winrm delete winrm/config/Listener?Address=*+Transport=HTTP 2>nul
 echo  Done.
 
 echo  Removing HTTPS listener (OK if not found)...
-winrm delete winrm/config/Listener?Address=*+Transport=HTTPS 2>nul
+call winrm delete winrm/config/Listener?Address=*+Transport=HTTPS 2>nul
 echo  Done.
 echo.
 
-echo  Starting WinRM service...
+echo  Restarting WinRM service to apply clean state...
+net stop winrm
 net start winrm
 echo.
 
@@ -62,7 +63,7 @@ echo  ============================================================
 echo  [STEP 2/9]  Check current WinRM configuration
 echo  ============================================================
 echo.
-winrm get winrm/config
+call winrm get winrm/config
 echo.
 echo  ---- Step 2 complete. Press any key to continue. ----
 pause >nul
@@ -77,7 +78,7 @@ echo  ============================================================
 echo  NOTE: A valid certificate must already exist on this machine.
 echo        The cert CN must match the hostname used to connect.
 echo.
-echo y | winrm quickconfig -transport:https
+echo y | call winrm quickconfig -transport:https
 echo.
 echo  ---- Step 3 complete. Press any key to continue. ----
 pause >nul
@@ -90,7 +91,7 @@ echo  ============================================================
 echo  [STEP 4/9]  Confirm WinRM listeners
 echo  ============================================================
 echo.
-winrm enumerate winrm/config/listener
+call winrm enumerate winrm/config/listener
 echo.
 echo  You should see Transport=HTTPS on Port=5986 above.
 echo.
@@ -105,7 +106,7 @@ echo  ============================================================
 echo  [STEP 5/9]  Confirm certificate thumbprint
 echo  ============================================================
 echo.
-winrm get http://schemas.microsoft.com/wbem/wsman/1/config
+call winrm get http://schemas.microsoft.com/wbem/wsman/1/config
 echo.
 echo  Look for CertificateThumbprint - it should NOT be empty.
 echo.
@@ -167,7 +168,7 @@ echo.
 set /p CONFIRM_DEL=  Remove HTTP listener now? (Y/N):
 if /i "!CONFIRM_DEL!"=="Y" (
     echo.
-    winrm delete winrm/config/Listener?Address=*+Transport=HTTP
+    call winrm delete winrm/config/Listener?Address=*+Transport=HTTP
     if !errorlevel! equ 0 (
         echo  [OK] HTTP listener removed.
     ) else (
@@ -186,7 +187,7 @@ echo   All 9 steps complete.
 echo   Final listener check:
 echo  ==============================================================
 echo.
-winrm enumerate winrm/config/listener
+call winrm enumerate winrm/config/listener
 echo.
 pause
 endlocal
