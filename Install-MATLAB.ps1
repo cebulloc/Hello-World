@@ -4,33 +4,38 @@
     Silent MATLAB installer for named-user network license environments.
 
 .DESCRIPTION
-    Copies the license file from a UNC network share, runs the MATLAB
-    setup.exe in silent mode using installer_input.txt, and sets
-    MLM_LICENSE_FILE as a machine-wide environment variable so every
-    named user automatically resolves the FlexLM license server.
+    Mirrors the versioned installer package from a UNC share to a local
+    staging directory using robocopy, then runs setup.exe silently and
+    sets MLM_LICENSE_FILE as a machine-wide environment variable.
 
-    Works with any MATLAB release (R2019b+). Point -SharePath at the
-    staged package for the desired release and supply a matching
-    installer_input.txt (see installer_input.txt in this repo for a
-    commented template).
+    Works with any MATLAB release (R2019b+). Per-release packages live
+    in their own subdirectories on the share:
+        \\fileserver\matlab\R2022b\
+        \\fileserver\matlab\R2024a\
 
 .PARAMETER SharePath
-    UNC path to the staged installer package for the target release.
+    UNC path to the versioned installer package directory.
     Example: \\fileserver\matlab\R2024a
+
+.PARAMETER LocalCacheDir
+    Local directory to robocopy the package into before install.
+    Robocopy mirrors the share here so re-runs skip unchanged files.
+    Default: C:\MatlabInstallCache\<release>
 
 .PARAMETER LicenseServer
     FlexLM server string written into MLM_LICENSE_FILE after install.
     Example: 27000@licserver.example.com
-    Omit to fall back to the .lic file path staged locally.
+    Omit to use the staged .lic file path as the env var value instead.
 
 .PARAMETER LicFileName
-    Name of the .lic file on the share and in LocalStageDir.
-    Default: license.lic
+    Name of the .lic file in the package.
+    Default: NASA_LaRC_Consolidated_Server.lic
 
-.PARAMETER LocalStageDir
-    Local directory used to stage the license file before install.
-    Must match the licensePath value in installer_input.txt.
-    Default: C:\MatlabSilentInstall
+.PARAMETER RobocopyThreads
+    Number of robocopy /MT threads (1-128).  Default: 16.
+
+.PARAMETER SkipCopy
+    Skip robocopy if the package is already fully cached locally.
 
 .PARAMETER LogFile
     Full path for the MATLAB install log.
@@ -41,22 +46,26 @@
                          -LicenseServer '27000@licserver.example.com'
 
 .EXAMPLE
-    # Use a bundled .lic file; no explicit server string needed
-    .\Install-MATLAB.ps1 -SharePath '\\server\matlab\R2022b' `
-                         -LicFileName 'NASA_LaRC_Consolidated_Server.lic'
+    # Re-run without re-copying (package already cached)
+    .\Install-MATLAB.ps1 -SharePath '\\server\matlab\R2022b' -SkipCopy
 #>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
     [string]$SharePath,
 
+    [string]$LocalCacheDir,         # defaults below after release is known
+
     [string]$LicenseServer,
 
-    [string]$LicFileName    = 'license.lic',
+    [string]$LicFileName        = 'NASA_LaRC_Consolidated_Server.lic',
 
-    [string]$LocalStageDir  = 'C:\MatlabSilentInstall',
+    [ValidateRange(1,128)]
+    [int]$RobocopyThreads       = 16,
 
-    [string]$LogFile        = 'C:\mathworks_install.log'
+    [switch]$SkipCopy,
+
+    [string]$LogFile            = 'C:\mathworks_install.log'
 )
 
 Set-StrictMode -Version Latest
@@ -75,50 +84,75 @@ function Assert-Path([string]$path, [string]$label) {
 # ── 1. Verify share ───────────────────────────────────────────────────────────
 
 Write-Step "Verifying network share: $SharePath"
-Assert-Path $SharePath        'Network share'
+Assert-Path $SharePath 'Network share'
 
-$setupExe     = Join-Path $SharePath 'setup.exe'
-$inputFile    = Join-Path $SharePath 'installer_input.txt'
-$licFileShare = Join-Path $SharePath $LicFileName
+Assert-Path (Join-Path $SharePath 'setup.exe')            'setup.exe on share'
+Assert-Path (Join-Path $SharePath 'installer_input.txt')  'installer_input.txt on share'
 
-Assert-Path $setupExe  'setup.exe on share'
-Assert-Path $inputFile 'installer_input.txt on share'
+# Detect release name from the leaf folder (e.g. R2024a) for cache path
+$release = Split-Path $SharePath -Leaf
 
-# ── 2. Detect release from installer_input.txt ────────────────────────────────
-# Read destinationFolder to surface the release in log output (informational only).
+if (-not $LocalCacheDir) {
+    $LocalCacheDir = "C:\MatlabInstallCache\$release"
+}
 
-$destLine = Select-String -Path $inputFile -Pattern '^destinationFolder\s*=' |
-            Select-Object -First 1
+# Read destination folder from installer_input.txt for summary output
+$destLine   = Select-String -Path (Join-Path $SharePath 'installer_input.txt') `
+                            -Pattern '^destinationFolder\s*=' | Select-Object -First 1
 $destFolder = if ($destLine) { ($destLine.Line -split '=', 2)[1].Trim() } else { '(see installer_input.txt)' }
-Write-Host "  Target destination: $destFolder"
 
-# ── 3. Stage license file locally ─────────────────────────────────────────────
+Write-Host "  Release     : $release"
+Write-Host "  Destination : $destFolder"
+Write-Host "  Local cache : $LocalCacheDir"
 
-Write-Step "Staging license file to $LocalStageDir"
+# ── 2. Robocopy package to local cache ───────────────────────────────────────
 
-if (-not (Test-Path $LocalStageDir)) {
-    New-Item -ItemType Directory -Path $LocalStageDir | Out-Null
-}
-
-if (Test-Path $licFileShare) {
-    Copy-Item -Path $licFileShare -Destination $LocalStageDir -Force
-    Write-Host "  Copied: $licFileShare -> $LocalStageDir"
+if ($SkipCopy) {
+    Write-Step "Skipping robocopy (-SkipCopy set)"
+    Assert-Path $LocalCacheDir 'Local cache directory'
 } else {
-    Write-Warning "License file not found on share ($licFileShare). Assuming it already exists at $LocalStageDir."
+    Write-Step "Mirroring package from share (robocopy /MIR /MT:$RobocopyThreads)"
+    Write-Host "  $SharePath  ->  $LocalCacheDir"
+
+    # robocopy exit codes 0-7 are success (bit flags for files copied/skipped/etc.)
+    # 8+ indicate errors.
+    $rcArgs = @(
+        $SharePath,
+        $LocalCacheDir,
+        '/MIR',                     # mirror: adds, updates, removes extras
+        "/MT:$RobocopyThreads",     # multi-threaded copy
+        '/R:3',                     # 3 retries on failure
+        '/W:10',                    # 10-second wait between retries
+        '/NP',                      # no per-file progress (cleaner log)
+        '/TEE',                     # output to console AND log
+        "/LOG+:$LogFile"            # append to install log
+    )
+
+    $rc = (Start-Process robocopy -ArgumentList $rcArgs -Wait -PassThru -NoNewWindow).ExitCode
+
+    if ($rc -ge 8) {
+        Write-Error "Robocopy failed with exit code $rc. Check: $LogFile"
+        exit $rc
+    }
+
+    Write-Host "  Robocopy complete (exit $rc — any value 0-7 is success)." -ForegroundColor Green
 }
 
-$stagedLic = Join-Path $LocalStageDir $LicFileName
-Assert-Path $stagedLic 'Staged license file'
+# ── 3. Run silent installer from local cache ──────────────────────────────────
 
-# ── 4. Run silent installer ───────────────────────────────────────────────────
+$localSetup     = Join-Path $LocalCacheDir 'setup.exe'
+$localInputFile = Join-Path $LocalCacheDir 'installer_input.txt'
 
-Write-Step "Running MATLAB silent installer"
-Write-Host "  setup.exe : $setupExe"
-Write-Host "  inputFile : $inputFile"
+Assert-Path $localSetup     'setup.exe in local cache'
+Assert-Path $localInputFile 'installer_input.txt in local cache'
+
+Write-Step "Running MATLAB silent installer (local)"
+Write-Host "  setup.exe : $localSetup"
+Write-Host "  inputFile : $localInputFile"
 Write-Host "  log       : $LogFile"
 
-$proc = Start-Process -FilePath $setupExe `
-                      -ArgumentList "-inputFile `"$inputFile`"" `
+$proc = Start-Process -FilePath $localSetup `
+                      -ArgumentList "-inputFile `"$localInputFile`"" `
                       -Wait -PassThru -NoNewWindow
 
 if ($proc.ExitCode -ne 0) {
@@ -128,11 +162,12 @@ if ($proc.ExitCode -ne 0) {
 
 Write-Host "  Installer completed (exit 0)." -ForegroundColor Green
 
-# ── 5. Set MLM_LICENSE_FILE system environment variable ───────────────────────
+# ── 4. Set MLM_LICENSE_FILE system environment variable ───────────────────────
 
 Write-Step "Setting MLM_LICENSE_FILE (machine scope)"
 
-$licValue = if ($LicenseServer) { $LicenseServer } else { $stagedLic }
+$stagedLic = Join-Path $LocalCacheDir $LicFileName
+$licValue  = if ($LicenseServer) { $LicenseServer } else { $stagedLic }
 
 [System.Environment]::SetEnvironmentVariable(
     'MLM_LICENSE_FILE',
@@ -140,14 +175,15 @@ $licValue = if ($LicenseServer) { $LicenseServer } else { $stagedLic }
     [System.EnvironmentVariableTarget]::Machine
 )
 
-$env:MLM_LICENSE_FILE = $licValue   # current session
+$env:MLM_LICENSE_FILE = $licValue
 
 Write-Host "  MLM_LICENSE_FILE = $licValue" -ForegroundColor Green
 
-# ── 6. Summary ────────────────────────────────────────────────────────────────
+# ── 5. Summary ────────────────────────────────────────────────────────────────
 
 Write-Step "Done"
 Write-Host @"
+  Release     : $release
   Destination : $destFolder
   License env : MLM_LICENSE_FILE = $licValue
   Install log : $LogFile

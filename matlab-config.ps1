@@ -4,33 +4,41 @@
 #  Edit values in this file only. Do not modify Install-MATLAB.ps1 unless
 #  you need to change install logic.
 #
-#  To deploy a different release, update MatlabRelease (and verify the
-#  matching subfolder exists on the share).
+#  To target a different release, change $MatlabRelease — everything else
+#  (share path, local cache path) derives from it automatically.
 # ─────────────────────────────────────────────────────────────────────────────
 
-# MATLAB release to install.  The installer package for this release must
-# exist at  <ShareRoot>\<MatlabRelease>\  on the staging server.
-$MatlabRelease  = 'R2022b'          # e.g. R2022b, R2023a, R2024a
+# ── Release ───────────────────────────────────────────────────────────────────
+# Package for this release must exist at  \\<server>\matlab\<release>\
+$MatlabRelease      = 'R2022b'          # e.g. R2022b, R2023a, R2024a
 
-# Root UNC path to the staging server.  A subfolder named $MatlabRelease
-# is expected underneath (see SharePath construction below).
-$ShareRoot      = '\\fileserver\matlab'
+# ── Share (source) ────────────────────────────────────────────────────────────
+# Root UNC path to the server where all versioned packages are staged.
+# Each release lives in its own subdirectory:
+#   \\<ShareRoot>\R2022b\
+#   \\<ShareRoot>\R2024a\
+$ShareRoot          = '\\fileserver\matlab'
+$SharePath          = "$ShareRoot\$MatlabRelease"   # constructed automatically
 
-# Full path to the versioned package — constructed automatically.
-# Override by setting $SharePath explicitly if your layout differs.
-$SharePath      = "$ShareRoot\$MatlabRelease"
+# ── Local cache (robocopy destination) ────────────────────────────────────────
+# The package is mirrored here before install so setup.exe runs locally.
+# Re-runs skip unchanged files (robocopy /MIR only copies deltas).
+$LocalCacheRoot     = 'C:\MatlabInstallCache'
+$LocalCacheDir      = "$LocalCacheRoot\$MatlabRelease"  # constructed automatically
 
-# Name of the .lic file inside the package and in LocalStageDir.
-$LicFileName    = 'NASA_LaRC_Consolidated_Server.lic'
+# Number of parallel robocopy threads (1-128).  16 is a good default for LAN.
+$RobocopyThreads    = 16
 
-# FlexLM license server written into MLM_LICENSE_FILE after install.
-# Format: <port>@<hostname>   e.g.  27000@licserver.example.com
-# Set to $null to use the staged .lic file path as the env var value instead.
-$LicenseServer  = '27000@licserver.example.com'
+# Set to $true to skip robocopy if the package is already fully cached.
+$SkipCopy           = $false
 
-# Local directory used to stage the .lic file before setup.exe runs.
-# Must match the licensePath value inside installer_input.txt.
-$LocalStageDir  = 'C:\MatlabSilentInstall'
+# ── License ───────────────────────────────────────────────────────────────────
+$LicFileName        = 'NASA_LaRC_Consolidated_Server.lic'
 
-# Full path for the MATLAB installation log.
-$LogFile        = 'C:\mathworks_install.log'
+# FlexLM server string written into the MLM_LICENSE_FILE machine env var.
+# Format: <port>@<hostname>
+# Set to $null to use the local .lic file path instead.
+$LicenseServer      = '27000@licserver.example.com'
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+$LogFile            = 'C:\mathworks_install.log'
