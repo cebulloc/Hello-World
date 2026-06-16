@@ -1,0 +1,111 @@
+##################################################################
+## MATLAB Silent Installer Input File
+##
+## Place a filled-in copy of this file inside each versioned package
+## folder on your staging share, e.g.:
+##
+##   \\fileserver\matlab\R2024a\installer_input.txt
+##   \\fileserver\matlab\R2022b\installer_input.txt
+##
+## Only the lines WITHOUT a leading '#' are active.  Update the
+## values below for each release; leave the commented product list
+## alone to install everything you are licensed for.
+##################################################################
+
+
+## ── Destination ──────────────────────────────────────────────────────────────
+## Windows example: C:\Program Files\MATLAB\R2022b
+## Change the release tag to match the package.
+
+destinationFolder=C:\Program Files\MATLAB\R2022b
+
+
+## ── File Installation Key ────────────────────────────────────────────────────
+## Obtain from MathWorks License Center for the target release/license.
+
+fileInstallationKey=XXXXX-XXXXX-XXXXX-XXXXX-XXXXX
+
+
+## ── License Agreement ────────────────────────────────────────────────────────
+
+agreeToLicense=yes
+
+
+## ── Install Mode ─────────────────────────────────────────────────────────────
+
+mode=silent
+
+
+## ── Log File ─────────────────────────────────────────────────────────────────
+
+outputFile=C:\mathworks_install.log
+
+
+## ── Network License File ─────────────────────────────────────────────────────
+## Must match LocalStageDir in matlab-config.ps1.
+## The Deploy script copies the .lic file here before setup.exe runs.
+
+licensePath=C:\MatlabSilentInstall\NASA_LaRC_Consolidated_Server.lic
+
+
+## ── Windows Options ──────────────────────────────────────────────────────────
+
+setFileAssoc=true
+desktopShortcut=true
+startMenuShortcut=true
+
+## Uncomment to enable Login Named User licensing (requires MathWorks Account):
+# enableLNU=yes
+
+
+## ── Products ─────────────────────────────────────────────────────────────────
+## Leave all commented to install every product you are licensed for.
+## Uncomment individual lines to restrict to a specific subset.
+
+#product.5G_Toolbox
+#product.Aerospace_Blockset
+#product.Aerospace_Toolbox
+#product.Audio_Toolbox
+#product.Bioinformatics_Toolbox
+#product.Communications_Toolbox
+#product.Computer_Vision_Toolbox
+#product.Control_System_Toolbox
+#product.Curve_Fitting_Toolbox
+#product.DSP_System_Toolbox
+#product.Data_Acquisition_Toolbox
+#product.Database_Toolbox
+#product.Deep_Learning_Toolbox
+#product.Econometrics_Toolbox
+#product.Embedded_Coder
+#product.Financial_Toolbox
+#product.Fixed_Point_Designer
+#product.Fuzzy_Logic_Toolbox
+#product.Global_Optimization_Toolbox
+#product.HDL_Coder
+#product.Image_Processing_Toolbox
+#product.MATLAB
+#product.MATLAB_Coder
+#product.MATLAB_Compiler
+#product.MATLAB_Compiler_SDK
+#product.MATLAB_Parallel_Server
+#product.MATLAB_Report_Generator
+#product.Mapping_Toolbox
+#product.Optimization_Toolbox
+#product.Parallel_Computing_Toolbox
+#product.Phased_Array_System_Toolbox
+#product.Robotics_System_Toolbox
+#product.Signal_Processing_Toolbox
+#product.SimBiology
+#product.Simscape
+#product.Simscape_Electrical
+#product.Simscape_Multibody
+#product.Simulink
+#product.Simulink_Coder
+#product.Simulink_Control_Design
+#product.Simulink_Requirements
+#product.Simulink_Test
+#product.Statistics_and_Machine_Learning_Toolbox
+#product.Symbolic_Math_Toolbox
+#product.System_Composer
+#product.System_Identification_Toolbox
+#product.Wavelet_Toolbox
