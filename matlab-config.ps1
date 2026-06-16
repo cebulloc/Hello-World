@@ -17,7 +17,7 @@ $MatlabRelease      = 'R2022b'          # e.g. R2022b, R2023a, R2024a
 # Each release lives in its own subdirectory:
 #   \\<ShareRoot>\R2022b\
 #   \\<ShareRoot>\R2024a\
-$ShareRoot          = '\\fileserver\matlab'
+$ShareRoot          = '\\e4-arch2\L$\Software\Matlab'
 $SharePath          = "$ShareRoot\$MatlabRelease"   # constructed automatically
 
 # ── Local cache (robocopy destination) ────────────────────────────────────────
