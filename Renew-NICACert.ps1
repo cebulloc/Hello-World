@@ -10,6 +10,8 @@
       - Generates CSR via certreq (self-elevates if needed)
       - Stages the .req file to the network share
       - Opens NAMS for certificate pickup
+.PARAMETER DryRun
+    Simulate the entire workflow without making any changes. Shows what would happen at each step.
 .PARAMETER Force
     Skip interactive prompts and run unattended.
 .PARAMETER SkipNAMS
@@ -30,6 +32,7 @@
 
 [CmdletBinding()]
 param(
+    [switch]$DryRun,
     [switch]$Force,
     [switch]$SkipNAMS,
     [string]$InfSource = '\\e4-arch2\e4it\Windows-CSR-Request\3-NICA-TLS-2016-2019.inf',
@@ -39,6 +42,18 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+
+if ($DryRun) {
+    Write-Host "`n========================================" -ForegroundColor Magenta
+    Write-Host "  DRY RUN MODE — no changes will be made" -ForegroundColor Magenta
+    Write-Host "========================================`n" -ForegroundColor Magenta
+    $Force = $true
+}
+
+function Write-DryRun {
+    param([string]$Message)
+    Write-Host "  [DRY RUN] $Message" -ForegroundColor Magenta
+}
 
 function Write-Step {
     param([string]$StepNumber, [string]$Message)
@@ -99,13 +114,21 @@ Confirm-Continue
 
 Write-Step "1" "Creating working directory: $WorkDir"
 
-if (Test-Path $WorkDir) {
-    Write-Host "  Directory already exists. Cleaning previous files..." -ForegroundColor Yellow
-    Remove-Item "$WorkDir\*.inf" -Force -ErrorAction SilentlyContinue
-    Remove-Item "$WorkDir\*.req" -Force -ErrorAction SilentlyContinue
+if ($DryRun) {
+    if (Test-Path $WorkDir) {
+        Write-DryRun "Would clean *.inf and *.req from existing $WorkDir"
+    } else {
+        Write-DryRun "Would create directory $WorkDir"
+    }
 } else {
-    New-Item -ItemType Directory -Path $WorkDir -Force | Out-Null
-    Write-Host "  Created $WorkDir" -ForegroundColor Green
+    if (Test-Path $WorkDir) {
+        Write-Host "  Directory already exists. Cleaning previous files..." -ForegroundColor Yellow
+        Remove-Item "$WorkDir\*.inf" -Force -ErrorAction SilentlyContinue
+        Remove-Item "$WorkDir\*.req" -Force -ErrorAction SilentlyContinue
+    } else {
+        New-Item -ItemType Directory -Path $WorkDir -Force | Out-Null
+        Write-Host "  Created $WorkDir" -ForegroundColor Green
+    }
 }
 
 # ── Step 2: Copy INF template ─────────────────────────────────────────────
@@ -114,26 +137,42 @@ Write-Step "2" "Copying INF template from network share"
 
 $infFileName = Split-Path $InfSource -Leaf
 
-if (-not (Test-Path $InfSource)) {
-    Write-Host "  ERROR: Cannot reach $InfSource" -ForegroundColor Red
-    Write-Host "  Verify you have network access to the share and try again." -ForegroundColor Red
-    exit 1
-}
+if ($DryRun) {
+    Write-DryRun "Would check for: $InfSource"
+    if (Test-Path $InfSource) {
+        Write-DryRun "  Share IS reachable"
+    } else {
+        Write-DryRun "  Share is NOT reachable (would fail in real run)"
+    }
+    Write-DryRun "Would copy $infFileName to $WorkDir"
+} else {
+    if (-not (Test-Path $InfSource)) {
+        Write-Host "  ERROR: Cannot reach $InfSource" -ForegroundColor Red
+        Write-Host "  Verify you have network access to the share and try again." -ForegroundColor Red
+        exit 1
+    }
 
-Copy-Item -Path $InfSource -Destination "$WorkDir\$infFileName" -Force
-Write-Host "  Copied $infFileName to $WorkDir" -ForegroundColor Green
+    Copy-Item -Path $InfSource -Destination "$WorkDir\$infFileName" -Force
+    Write-Host "  Copied $infFileName to $WorkDir" -ForegroundColor Green
+}
 
 # ── Step 3: Customize template with FQDN ─────────────────────────────────
 
 Write-Step "3" "Customizing INF template with FQDN: $FQDNhostname"
 
 $outputInf = Join-Path $WorkDir "NICA-TLS-2016-2019.inf"
-$rawContent = Get-Content -Path "$WorkDir\$infFileName" -Raw
-$updatedContent = $rawContent -replace 'FQDNPLACEHOLDER', $FQDNhostname
-Set-Content -Path $outputInf -Value $updatedContent
 
-Write-Host "  Template updated: $outputInf" -ForegroundColor Green
-Confirm-Continue "  Template ready. Press Enter to generate CSR or Ctrl+C to abort..."
+if ($DryRun) {
+    Write-DryRun "Would replace 'FQDNPLACEHOLDER' with '$FQDNhostname' in template"
+    Write-DryRun "Would save customized template to: $outputInf"
+} else {
+    $rawContent = Get-Content -Path "$WorkDir\$infFileName" -Raw
+    $updatedContent = $rawContent -replace 'FQDNPLACEHOLDER', $FQDNhostname
+    Set-Content -Path $outputInf -Value $updatedContent
+
+    Write-Host "  Template updated: $outputInf" -ForegroundColor Green
+    Confirm-Continue "  Template ready. Press Enter to generate CSR or Ctrl+C to abort..."
+}
 
 # ── Step 4: Generate CSR via certreq ──────────────────────────────────────
 
@@ -141,56 +180,80 @@ Write-Step "4" "Generating CSR (will elevate to Administrator if needed)"
 
 $reqFile = Join-Path $WorkDir "NewCSR.req"
 
-$isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
-    [Security.Principal.WindowsBuiltInRole]::Administrator
-)
-
-if ($isAdmin) {
-    Write-Host "  Running as Administrator — generating CSR directly..." -ForegroundColor Green
-    Push-Location $WorkDir
-    try {
-        $result = & certreq -new $outputInf $reqFile 2>&1
-        Write-Host $result
-    } finally {
-        Pop-Location
+if ($DryRun) {
+    $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+        [Security.Principal.WindowsBuiltInRole]::Administrator
+    )
+    Write-DryRun "Current session is admin: $isAdmin"
+    if ($isAdmin) {
+        Write-DryRun "Would run: certreq -new $outputInf $reqFile"
+    } else {
+        Write-DryRun "Would elevate to admin and run: certreq -new $outputInf $reqFile"
     }
+    Write-DryRun "Expected output: $reqFile"
 } else {
-    Write-Host "  Not running as Administrator — elevating..." -ForegroundColor Yellow
+    $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+        [Security.Principal.WindowsBuiltInRole]::Administrator
+    )
 
-    $elevatedScript = @"
+    if ($isAdmin) {
+        Write-Host "  Running as Administrator — generating CSR directly..." -ForegroundColor Green
+        Push-Location $WorkDir
+        try {
+            $result = & certreq -new $outputInf $reqFile 2>&1
+            Write-Host $result
+        } finally {
+            Pop-Location
+        }
+    } else {
+        Write-Host "  Not running as Administrator — elevating..." -ForegroundColor Yellow
+
+        $elevatedScript = @"
 Set-Location '$WorkDir'
 certreq -new '$outputInf' '$reqFile'
 "@
-    $elevatedScriptPath = Join-Path $WorkDir "_elevate-certreq.ps1"
-    Set-Content -Path $elevatedScriptPath -Value $elevatedScript
+        $elevatedScriptPath = Join-Path $WorkDir "_elevate-certreq.ps1"
+        Set-Content -Path $elevatedScriptPath -Value $elevatedScript
 
-    Start-Process powershell.exe -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass -File `"$elevatedScriptPath`"" -Wait
-    Remove-Item $elevatedScriptPath -Force -ErrorAction SilentlyContinue
+        Start-Process powershell.exe -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass -File `"$elevatedScriptPath`"" -Wait
+        Remove-Item $elevatedScriptPath -Force -ErrorAction SilentlyContinue
+    }
+
+    if (-not (Test-Path $reqFile)) {
+        Write-Host "  ERROR: CSR file was not created. certreq may have failed." -ForegroundColor Red
+        Write-Host "  Check the elevated window for errors and retry." -ForegroundColor Red
+        exit 1
+    }
+
+    Write-Host "  CSR generated: $reqFile" -ForegroundColor Green
 }
-
-if (-not (Test-Path $reqFile)) {
-    Write-Host "  ERROR: CSR file was not created. certreq may have failed." -ForegroundColor Red
-    Write-Host "  Check the elevated window for errors and retry." -ForegroundColor Red
-    exit 1
-}
-
-Write-Host "  CSR generated: $reqFile" -ForegroundColor Green
 
 # ── Step 5: Rename and stage the .req file ────────────────────────────────
 
 Write-Step "5" "Staging CSR to network share"
 
 $namedReq = Join-Path $WorkDir "$FQDNhostname.req"
-Copy-Item -Path $reqFile -Destination $namedReq -Force
-Write-Host "  Renamed to: $namedReq" -ForegroundColor Green
 
-if (Test-Path $StagingShare) {
-    Copy-Item -Path $namedReq -Destination "$StagingShare\" -Force
-    Write-Host "  Copied to: $StagingShare\$FQDNhostname.req" -ForegroundColor Green
+if ($DryRun) {
+    Write-DryRun "Would rename NewCSR.req to: $namedReq"
+    Write-DryRun "Would check staging share: $StagingShare"
+    if (Test-Path $StagingShare) {
+        Write-DryRun "  Share IS reachable — would copy .req there"
+    } else {
+        Write-DryRun "  Share is NOT reachable — would save locally only"
+    }
 } else {
-    Write-Host "  WARNING: Cannot reach staging share $StagingShare" -ForegroundColor Yellow
-    Write-Host "  The .req file is saved locally at: $namedReq" -ForegroundColor Yellow
-    Write-Host "  Manually copy it when the share is available." -ForegroundColor Yellow
+    Copy-Item -Path $reqFile -Destination $namedReq -Force
+    Write-Host "  Renamed to: $namedReq" -ForegroundColor Green
+
+    if (Test-Path $StagingShare) {
+        Copy-Item -Path $namedReq -Destination "$StagingShare\" -Force
+        Write-Host "  Copied to: $StagingShare\$FQDNhostname.req" -ForegroundColor Green
+    } else {
+        Write-Host "  WARNING: Cannot reach staging share $StagingShare" -ForegroundColor Yellow
+        Write-Host "  The .req file is saved locally at: $namedReq" -ForegroundColor Yellow
+        Write-Host "  Manually copy it when the share is available." -ForegroundColor Yellow
+    }
 }
 
 # ── Step 6: Open NAMS for cert pickup ─────────────────────────────────────
@@ -208,17 +271,24 @@ Write-Host "    3. Download the .cer from IdMAX"
 Write-Host "    4. Run:  certreq -accept <certificate.cer>"
 Write-Host ""
 
-if (-not $SkipNAMS) {
-    if (-not $Force) {
-        $openNams = Read-Host "  Open NAMS now? (Y/n)"
-        if ($openNams -match '^[Nn]') {
-            Write-Host "  Skipped." -ForegroundColor Yellow
+if ($DryRun) {
+    Write-DryRun "Would open NAMS: https://nams.nasa.gov"
+    Write-Host "`n========================================" -ForegroundColor Magenta
+    Write-Host "  DRY RUN COMPLETE — no changes were made" -ForegroundColor Magenta
+    Write-Host "========================================`n" -ForegroundColor Magenta
+} else {
+    if (-not $SkipNAMS) {
+        if (-not $Force) {
+            $openNams = Read-Host "  Open NAMS now? (Y/n)"
+            if ($openNams -match '^[Nn]') {
+                Write-Host "  Skipped." -ForegroundColor Yellow
+            } else {
+                Start-Process "https://nams.nasa.gov"
+            }
         } else {
             Start-Process "https://nams.nasa.gov"
         }
-    } else {
-        Start-Process "https://nams.nasa.gov"
     }
-}
 
-Write-Host "`nDone.`n" -ForegroundColor Green
+    Write-Host "`nDone.`n" -ForegroundColor Green
+}
