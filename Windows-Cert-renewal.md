@@ -32,7 +32,7 @@ End-to-end automation of NICA TLS certificate renewal for Windows servers. Repla
 5. Replace `FQDNPLACEHOLDER` with actual FQDN
 6. Run `certreq -new` (elevates to admin if needed)
 7. Copy `.req` to staging share `\\e4-arch2\e4it\Windows-CSR-Request\ready-requests\`
-8. Open NAMS for cert submission
+8. Open IdMAX PKI Tool (https://nams.nasa.gov/tools/pki) for cert submission
 
 ### Post-script manual steps
 
@@ -46,5 +46,5 @@ End-to-end automation of NICA TLS certificate renewal for Windows servers. Repla
 - INF template download: http://hc.nasa.gov/msca/NICA-TLS-INF.zip
 - PKI info: https://nasa.sharepoint.com/sites/PKI/SitePages/ICAM.aspx (Section 4.3.5)
 - Server Certificate FAQ: https://icam.nasa.gov/documents/11201/2521894/Server+Certificate+Info+and+FAQ.pdf
-- NAMS: https://nams.nasa.gov
+- IdMAX PKI Tool (where CSR is submitted / cert downloaded): https://nams.nasa.gov/tools/pki
 - Original script author: Tom Perry, 4/21/2023, updated 12/01/2023

@@ -14,8 +14,10 @@
     Simulate the entire workflow without making any changes. Shows what would happen at each step.
 .PARAMETER Force
     Skip interactive prompts and run unattended.
-.PARAMETER SkipNAMS
-    Do not open the NAMS browser window at the end.
+.PARAMETER SkipIdMax
+    Do not open the IdMAX PKI Tool browser window at the end.
+.PARAMETER IdMaxUrl
+    URL of the IdMAX PKI Tool. Defaults to https://nams.nasa.gov/tools/pki
 .PARAMETER InfSource
     UNC path to the INF template. Defaults to \\e4-arch2\e4it\Windows-CSR-Request\3-NICA-TLS-2016-2019.inf
 .PARAMETER StagingShare
@@ -34,7 +36,8 @@
 param(
     [switch]$DryRun,
     [switch]$Force,
-    [switch]$SkipNAMS,
+    [switch]$SkipIdMax,
+    [string]$IdMaxUrl = 'https://nams.nasa.gov/tools/pki',
     [string]$InfSource = '\\e4-arch2\e4it\Windows-CSR-Request\3-NICA-TLS-2016-2019.inf',
     [string]$StagingShare = '\\e4-arch2\e4it\Windows-CSR-Request\ready-requests',
     [string]$WorkDir = 'C:\NASA\_ServerCert',
@@ -256,7 +259,7 @@ if ($DryRun) {
     }
 }
 
-# -- Step 6: Open NAMS for cert pickup -------------------------------------
+# -- Step 6: Open IdMAX PKI Tool for cert submission -----------------------
 
 Write-Step "6" "Complete"
 
@@ -264,29 +267,29 @@ Write-Host "`n  CSR is ready for submission." -ForegroundColor Green
 Write-Host "  Local copy:  $namedReq"
 Write-Host "  Staged copy: $StagingShare\$FQDNhostname.req"
 Write-Host ""
-Write-Host "  Next steps:" -ForegroundColor Cyan
-Write-Host "    1. Submit the CSR via IdMAX PKI Tool (NAMS will open)"
+Write-Host "  Next steps (manual, in IdMAX PKI Tool):" -ForegroundColor Cyan
+Write-Host "    1. Submit the CSR via the IdMAX PKI Tool ($IdMaxUrl)"
 Write-Host "    2. Wait for the approval email"
 Write-Host "    3. Download the .cer from IdMAX"
 Write-Host "    4. Run:  certreq -accept <certificate.cer>"
 Write-Host ""
 
 if ($DryRun) {
-    Write-DryRun "Would open NAMS: https://nams.nasa.gov"
+    Write-DryRun "Would open IdMAX PKI Tool: $IdMaxUrl"
     Write-Host "`n========================================" -ForegroundColor Magenta
     Write-Host "  DRY RUN COMPLETE - no changes were made" -ForegroundColor Magenta
     Write-Host "========================================`n" -ForegroundColor Magenta
 } else {
-    if (-not $SkipNAMS) {
+    if (-not $SkipIdMax) {
         if (-not $Force) {
-            $openNams = Read-Host "  Open NAMS now? (Y/n)"
-            if ($openNams -match '^[Nn]') {
+            $openIdMax = Read-Host "  Open IdMAX PKI Tool now? (Y/n)"
+            if ($openIdMax -match '^[Nn]') {
                 Write-Host "  Skipped." -ForegroundColor Yellow
             } else {
-                Start-Process "https://nams.nasa.gov"
+                Start-Process $IdMaxUrl
             }
         } else {
-            Start-Process "https://nams.nasa.gov"
+            Start-Process $IdMaxUrl
         }
     }
 
