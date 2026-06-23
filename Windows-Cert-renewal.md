@@ -8,8 +8,9 @@ End-to-end automation of NICA TLS certificate renewal for Windows servers. Repla
 
 ## Current State
 
-- **`Renew-NICACert.ps1`** — Local-only interactive script (v1). Handles FQDN detection, cert expiry check, INF template customization, CSR generation with auto-elevation, staging to network share, and NAMS launch.
-- Supports `-Force` for unattended runs, `-SkipNAMS`, configurable paths via parameters.
+- **`Renew-NICACert.ps1`** — Local interactive script. Handles FQDN detection, cert expiry check, INF template customization, CSR generation with auto-elevation, staging to network share, and IdMAX PKI Tool launch.
+- **`-AcceptCert <path>`** mode installs the issued `.cer` via `certreq -accept` (auto-elevates) and verifies the new cert in `LocalMachine\My` — the final step after downloading from IdMAX.
+- Supports `-DryRun`, `-Force` for unattended runs, `-SkipIdMax`, `-IdMaxUrl`, configurable paths via parameters.
 
 ## TODO
 
@@ -19,7 +20,7 @@ End-to-end automation of NICA TLS certificate renewal for Windows servers. Repla
   - Approach: script on `e4-arch2` that takes a `-ComputerName`, copies the `.ps1` over via SMB, starts a remote PSSession, runs it, and pulls back the `.req`
   - Consideration: `certreq` elevation inside a remote session — may need CredSSP or a scheduled task workaround
   - Consideration: WinRM must be enabled on target servers
-- [ ] Add `-AcceptCert` parameter to also handle Step 5 (certreq -accept) after cert is issued
+- [x] Add `-AcceptCert` parameter to handle the final certreq -accept after cert is issued
 - [ ] Bulk renewal support — loop over a list of servers from a CSV
 - [ ] Logging to a transcript file for audit trail
 

@@ -10,6 +10,11 @@
       - Generates CSR via certreq (self-elevates if needed)
       - Stages the .req file to the network share
       - Opens NAMS for certificate pickup
+.PARAMETER AcceptCert
+    Path to a .cer file issued by IdMAX. When supplied, the script skips CSR
+    generation and instead installs the issued certificate via 'certreq -accept'
+    (self-elevating if needed), then verifies the new cert in LocalMachine\My.
+    This is the final step, run after downloading the cert from IdMAX.
 .PARAMETER DryRun
     Simulate the entire workflow without making any changes. Shows what would happen at each step.
 .PARAMETER Force
@@ -34,6 +39,7 @@
 
 [CmdletBinding()]
 param(
+    [string]$AcceptCert,
     [switch]$DryRun,
     [switch]$Force,
     [switch]$SkipIdMax,
@@ -68,6 +74,75 @@ function Confirm-Continue {
     if (-not $Force) {
         Read-Host $Message
     }
+}
+
+function Test-IsAdmin {
+    return ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+        [Security.Principal.WindowsBuiltInRole]::Administrator
+    )
+}
+
+# -- Accept mode: install an issued cert and exit --------------------------
+# Runs the final 'certreq -accept' step after you've downloaded the .cer
+# from IdMAX. Bypasses the CSR-generation workflow entirely.
+
+if ($AcceptCert) {
+    Write-Step "ACCEPT" "Installing issued certificate"
+
+    if (-not (Test-Path $AcceptCert)) {
+        Write-Host "  ERROR: Certificate file not found: $AcceptCert" -ForegroundColor Red
+        exit 1
+    }
+
+    $certPath = (Resolve-Path $AcceptCert).Path
+    Write-Host "  Certificate file: $certPath" -ForegroundColor Green
+
+    # Capture existing thumbprints so we can report what was added.
+    $before = (Get-ChildItem -Path cert:\LocalMachine\My -ErrorAction SilentlyContinue).Thumbprint
+
+    if ($DryRun) {
+        Write-DryRun "Admin session: $(Test-IsAdmin)"
+        Write-DryRun "Would run: certreq -accept `"$certPath`""
+        Write-DryRun "Would verify the new cert appears in LocalMachine\My"
+        Write-Host "`n========================================" -ForegroundColor Magenta
+        Write-Host "  DRY RUN COMPLETE - no changes were made" -ForegroundColor Magenta
+        Write-Host "========================================`n" -ForegroundColor Magenta
+        exit 0
+    }
+
+    if (Test-IsAdmin) {
+        Write-Host "  Running as Administrator - accepting certificate..." -ForegroundColor Green
+        $result = & certreq -accept $certPath 2>&1
+        Write-Host $result
+    } else {
+        Write-Host "  Not running as Administrator - elevating..." -ForegroundColor Yellow
+        $elevatedScript = "certreq -accept '$certPath'"
+        $elevatedScriptPath = Join-Path $env:TEMP "_elevate-accept.ps1"
+        Set-Content -Path $elevatedScriptPath -Value $elevatedScript
+        Start-Process powershell.exe -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass -NoExit -File `"$elevatedScriptPath`"" -Wait
+        Remove-Item $elevatedScriptPath -Force -ErrorAction SilentlyContinue
+    }
+
+    # Verify: find any cert that now exists with a private key that wasn't there before.
+    $after = Get-ChildItem -Path cert:\LocalMachine\My -ErrorAction SilentlyContinue
+    $newCerts = $after | Where-Object { $_.Thumbprint -notin $before }
+
+    if ($newCerts) {
+        Write-Host "`n  SUCCESS - certificate installed:" -ForegroundColor Green
+        foreach ($cert in $newCerts) {
+            Write-Host "    Subject:    $($cert.Subject)" -ForegroundColor Green
+            Write-Host "    Expires:    $($cert.NotAfter)" -ForegroundColor Green
+            Write-Host "    HasPrivKey: $($cert.HasPrivateKey)" -ForegroundColor $(if ($cert.HasPrivateKey) { 'Green' } else { 'Yellow' })
+            Write-Host "    Thumbprint: $($cert.Thumbprint)"
+        }
+    } else {
+        Write-Host "`n  WARNING: No new certificate detected in LocalMachine\My." -ForegroundColor Yellow
+        Write-Host "  certreq -accept may have failed, or the cert was already present." -ForegroundColor Yellow
+        Write-Host "  Check the output above for errors." -ForegroundColor Yellow
+    }
+
+    Write-Host "`nDone.`n" -ForegroundColor Green
+    exit 0
 }
 
 # -- Step 0: Detect FQDN and check existing cert --------------------------
@@ -184,9 +259,7 @@ Write-Step "4" "Generating CSR (will elevate to Administrator if needed)"
 $reqFile = Join-Path $WorkDir "NewCSR.req"
 
 if ($DryRun) {
-    $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
-        [Security.Principal.WindowsBuiltInRole]::Administrator
-    )
+    $isAdmin = Test-IsAdmin
     Write-DryRun "Current session is admin: $isAdmin"
     if ($isAdmin) {
         Write-DryRun "Would run: certreq -new $outputInf $reqFile"
@@ -195,9 +268,7 @@ if ($DryRun) {
     }
     Write-DryRun "Expected output: $reqFile"
 } else {
-    $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
-        [Security.Principal.WindowsBuiltInRole]::Administrator
-    )
+    $isAdmin = Test-IsAdmin
 
     if ($isAdmin) {
         Write-Host "  Running as Administrator - generating CSR directly..." -ForegroundColor Green
