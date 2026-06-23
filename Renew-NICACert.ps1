@@ -45,7 +45,7 @@ $ErrorActionPreference = 'Stop'
 
 if ($DryRun) {
     Write-Host "`n========================================" -ForegroundColor Magenta
-    Write-Host "  DRY RUN MODE — no changes will be made" -ForegroundColor Magenta
+    Write-Host "  DRY RUN MODE - no changes will be made" -ForegroundColor Magenta
     Write-Host "========================================`n" -ForegroundColor Magenta
     $Force = $true
 }
@@ -67,7 +67,7 @@ function Confirm-Continue {
     }
 }
 
-# ── Step 0: Detect FQDN and check existing cert ──────────────────────────
+# -- Step 0: Detect FQDN and check existing cert --------------------------
 
 Write-Step "0" "Detecting FQDN and checking existing certificates"
 
@@ -105,12 +105,12 @@ if ($matchingCerts) {
         }
     }
 } else {
-    Write-Host "  No matching certificate found for $FQDNhostname — proceeding with new request." -ForegroundColor Yellow
+    Write-Host "  No matching certificate found for $FQDNhostname - proceeding with new request." -ForegroundColor Yellow
 }
 
 Confirm-Continue
 
-# ── Step 1: Create working directory ──────────────────────────────────────
+# -- Step 1: Create working directory --------------------------------------
 
 Write-Step "1" "Creating working directory: $WorkDir"
 
@@ -131,7 +131,7 @@ if ($DryRun) {
     }
 }
 
-# ── Step 2: Copy INF template ─────────────────────────────────────────────
+# -- Step 2: Copy INF template ---------------------------------------------
 
 Write-Step "2" "Copying INF template from network share"
 
@@ -156,7 +156,7 @@ if ($DryRun) {
     Write-Host "  Copied $infFileName to $WorkDir" -ForegroundColor Green
 }
 
-# ── Step 3: Customize template with FQDN ─────────────────────────────────
+# -- Step 3: Customize template with FQDN ---------------------------------
 
 Write-Step "3" "Customizing INF template with FQDN: $FQDNhostname"
 
@@ -174,7 +174,7 @@ if ($DryRun) {
     Confirm-Continue "  Template ready. Press Enter to generate CSR or Ctrl+C to abort..."
 }
 
-# ── Step 4: Generate CSR via certreq ──────────────────────────────────────
+# -- Step 4: Generate CSR via certreq --------------------------------------
 
 Write-Step "4" "Generating CSR (will elevate to Administrator if needed)"
 
@@ -197,7 +197,7 @@ if ($DryRun) {
     )
 
     if ($isAdmin) {
-        Write-Host "  Running as Administrator — generating CSR directly..." -ForegroundColor Green
+        Write-Host "  Running as Administrator - generating CSR directly..." -ForegroundColor Green
         Push-Location $WorkDir
         try {
             $result = & certreq -new $outputInf $reqFile 2>&1
@@ -206,7 +206,7 @@ if ($DryRun) {
             Pop-Location
         }
     } else {
-        Write-Host "  Not running as Administrator — elevating..." -ForegroundColor Yellow
+        Write-Host "  Not running as Administrator - elevating..." -ForegroundColor Yellow
 
         $elevatedScript = @"
 Set-Location '$WorkDir'
@@ -228,7 +228,7 @@ certreq -new '$outputInf' '$reqFile'
     Write-Host "  CSR generated: $reqFile" -ForegroundColor Green
 }
 
-# ── Step 5: Rename and stage the .req file ────────────────────────────────
+# -- Step 5: Rename and stage the .req file --------------------------------
 
 Write-Step "5" "Staging CSR to network share"
 
@@ -238,9 +238,9 @@ if ($DryRun) {
     Write-DryRun "Would rename NewCSR.req to: $namedReq"
     Write-DryRun "Would check staging share: $StagingShare"
     if (Test-Path $StagingShare) {
-        Write-DryRun "  Share IS reachable — would copy .req there"
+        Write-DryRun "  Share IS reachable - would copy .req there"
     } else {
-        Write-DryRun "  Share is NOT reachable — would save locally only"
+        Write-DryRun "  Share is NOT reachable - would save locally only"
     }
 } else {
     Copy-Item -Path $reqFile -Destination $namedReq -Force
@@ -256,7 +256,7 @@ if ($DryRun) {
     }
 }
 
-# ── Step 6: Open NAMS for cert pickup ─────────────────────────────────────
+# -- Step 6: Open NAMS for cert pickup -------------------------------------
 
 Write-Step "6" "Complete"
 
@@ -274,7 +274,7 @@ Write-Host ""
 if ($DryRun) {
     Write-DryRun "Would open NAMS: https://nams.nasa.gov"
     Write-Host "`n========================================" -ForegroundColor Magenta
-    Write-Host "  DRY RUN COMPLETE — no changes were made" -ForegroundColor Magenta
+    Write-Host "  DRY RUN COMPLETE - no changes were made" -ForegroundColor Magenta
     Write-Host "========================================`n" -ForegroundColor Magenta
 } else {
     if (-not $SkipNAMS) {
