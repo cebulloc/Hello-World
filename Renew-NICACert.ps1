@@ -91,7 +91,7 @@ if ($matchingCerts) {
         $daysLeft = ($cert.NotAfter - (Get-Date)).Days
         $color = if ($daysLeft -le 0) { 'Red' } elseif ($daysLeft -le $ExpiryWarningDays) { 'Yellow' } else { 'Green' }
         Write-Host "    Subject:  $($cert.Subject)" -ForegroundColor $color
-        Write-Host "    Expires:  $($cert.NotAfter)  ($daysLeft days remaining)" -ForegroundColor $color
+        Write-Host "    Expires:  $($cert.NotAfter)  ($($daysLeft) days remaining)" -ForegroundColor $color
         Write-Host "    Thumbprint: $($cert.Thumbprint)"
     }
 
