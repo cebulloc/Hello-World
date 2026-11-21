@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ukulele theory explorer</title>
+<style>
+:root{--text-primary:#1f1e1b;--text-secondary:#5f5e5a;--text-muted:#888780;--text-danger:#a32d2d;--text-warning:#854f0b;--text-accent:#0c447c;--bg-neutral:#f1efe8;--bg-accent:#e6f1fb;--bg-accent-muted:rgba(55,138,221,.12);--fill-accent:#185fa5;--on-accent:#fff;--border:rgba(0,0,0,.12);--border-strong:rgba(0,0,0,.3);--border-accent:#85b7eb;--radius:8px}
+@media(prefers-color-scheme:dark){:root{--text-primary:#f1efe8;--text-secondary:#b4b2a9;--text-muted:#888780;--text-danger:#f09595;--text-warning:#fac775;--text-accent:#b5d4f4;--bg-neutral:#2c2c2a;--bg-accent:#0c447c;--bg-accent-muted:rgba(55,138,221,.2);--fill-accent:#378add;--on-accent:#fff;--border:rgba(255,255,255,.14);--border-strong:rgba(255,255,255,.35);--border-accent:#378add}body{background:#1a1a18}}
+body{margin:0;padding:14px;font-family:system-ui,-apple-system,sans-serif;color:var(--text-primary);max-width:420px;margin:0 auto;font-size:15px}
+h1{font-size:18px;font-weight:500;margin:0 0 6px}
+button{font:inherit;color:var(--text-primary);background:transparent;border:.5px solid var(--border-strong);border-radius:var(--radius);padding:6px 10px;cursor:pointer}
+button:active{transform:scale(.98)}
+input{font:inherit;color:var(--text-primary);background:transparent;border:.5px solid var(--border-strong);border-radius:var(--radius);padding:8px 10px;height:38px;box-sizing:border-box}
+</style></head><body>
+<h1>Ukulele theory explorer</h1>
+<svg id="cof" viewBox="0 0 340 340" width="100%" role="img" aria-label="Circle of fifths with major keys outside and relative minors inside" style="display:block;max-width:340px;margin:0 auto;"></svg>
+<div id="sub" style="font-size:13px;color:var(--text-secondary);text-align:center;margin:6px 0 12px;line-height:1.5;"></div>
+<div id="rel" style="display:flex;gap:6px;margin-bottom:8px;"></div>
+<div id="tabs" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;"></div>
+<div id="ctl" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;"></div>
+<div id="notes" style="display:grid;gap:4px;margin-bottom:4px;"></div>
+<div id="hint" style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Tap a note to hear it.</div>
+<div id="chs" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;"></div>
+<div id="ps" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;"></div>
+<div id="out" style="background:var(--bg-neutral);border-radius:12px;padding:12px 8px 10px;text-align:center;"></div>
+<script>
+var L=['C','D','E','F','G','A','B'],NP=[0,2,4,5,7,9,11],OP=[7,0,4,9],SN=['G','C','E','A'],OF=[392,261.63,329.63,440];
+var keys=['C','G','D','A','E','B','F#','Db','Ab','Eb','Bb','F'];
+var minors=['A','E','B','F#','C#','G#','D#','Bb','F','C','G','D'];
+var KS=['no sharps or flats','1 sharp','2 sharps','3 sharps','4 sharps','5 sharps','6 sharps','5 flats','4 flats','3 flats','2 flats','1 flat'];
+var POS=[[0,4],[3,7],[5,9],[7,11],[9,12]];
+var RN=['I','bII','II','bIII','III','IV','#IV','V','bVI','VI','bVII','VII'];
+var CQ={'':[0,4,7],m:[0,3,7],'7':[0,4,7,10],maj7:[0,4,7,11],m7:[0,3,7,10],dim:[0,3,6],dim7:[0,3,6,9],m7b5:[0,3,6,10],aug:[0,4,8],sus2:[0,2,7],sus4:[0,5,7],'6':[0,4,7,9],add9:[0,2,4,7],'9':[0,4,7,10]};
+var SC={
+major:{n:'Major',iv:[0,2,4,5,7,9,11],dg:[1,2,3,4,5,6,7]},
+minor:{n:'Minor',iv:[0,2,3,5,7,8,10],dg:[1,2,3,4,5,6,7]},
+dorian:{n:'Dorian',iv:[0,2,3,5,7,9,10],dg:[1,2,3,4,5,6,7]},
+phrygian:{n:'Phrygian',iv:[0,1,3,5,7,8,10],dg:[1,2,3,4,5,6,7]},
+lydian:{n:'Lydian',iv:[0,2,4,6,7,9,11],dg:[1,2,3,4,5,6,7]},
+mixolydian:{n:'Mixolydian',iv:[0,2,4,5,7,9,10],dg:[1,2,3,4,5,6,7]},
+majpent:{n:'Major pent.',iv:[0,2,4,7,9],dg:[1,2,3,5,6]},
+minpent:{n:'Minor pent.',iv:[0,3,5,7,10],dg:[1,3,4,5,7]},
+blues:{n:'Blues',iv:[0,3,5,6,7,10],dg:[1,3,4,5,5,7]}};
+var S={k:0,rel:0,t:'c',sev:0,sm:'major',bm:'minor',d:0,v:0,pos:-1,sg:null},P={f:null,run:[],prog:[]},AC=null,FC={};
+function $(i){return document.getElementById(i)}
+function ac(){try{if(!AC){var C=window.AudioContext||window.webkitAudioContext;if(!C)return null;AC=new C()}if(AC.state=='suspended')AC.resume();return AC}catch(e){return null}}
+function pluck(fr,t){var c=AC,o=c.createOscillator(),o2=c.createOscillator(),g=c.createGain(),fl=c.createBiquadFilter();
+o.type='triangle';o2.type='sine';o.frequency.value=fr;o2.frequency.value=fr*2;
+fl.type='lowpass';fl.frequency.setValueAtTime(3500,t);fl.frequency.exponentialRampToValueAtTime(700,t+1);
+g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.2,t+0.005);g.gain.exponentialRampToValueAtTime(0.001,t+1.6);
+o.connect(fl);o2.connect(fl);fl.connect(g);g.connect(c.destination);o.start(t);o2.start(t);o.stop(t+1.7);o2.stop(t+1.7)}
+function seq(fs,gap,off){if(!ac())return;var t=AC.currentTime+0.03+(off||0);fs.forEach(function(f,i){pluck(f,t+i*gap)})}
+function mf(m){return 440*Math.pow(2,(m-69)/12)}
+function shapeF(f){return f.map(function(x,i){return OF[i]*Math.pow(2,x/12)})}
+function runF(nt,rp){var rm=60+rp,m=nt.map(function(t){return rm+((t.p-rp+12)%12)}).sort(function(a,b){return a-b});m.push(rm+12);
+var d=m.slice(0,-1).reverse();return m.concat(d).map(mf)}
+function runPos(nt,lo,hi){var st=[9,4,0,7],fs=[],seen={};
+for(var s=0;s<4;s++)for(var f=lo;f<=hi;f++){var p=(st[s]+f)%12;if(nt.some(function(t){return t.p==p})){var q=[440,329.63,261.63,392][s]*Math.pow(2,f/12),k=Math.round(12*Math.log(q)/Math.LN2);if(!seen[k]){seen[k]=1;fs.push(q)}}}
+fs.sort(function(a,b){return a-b});return fs.concat(fs.slice(0,-1).reverse())}
+function acc(a){return a==0?'':a==1?'#':a==2?'x':a==-1?'b':'bb'}
+function parse(k){var l=L.indexOf(k[0]),a=k.length>1?(k[1]=='#'?1:-1):0;return{l:l,p:(NP[l]+a+12)%12}}
+function ntes(r,sc){return sc.iv.map(function(v,i){var l=(r.l+sc.dg[i]-1)%7,p=(r.p+v)%12,d=((p-NP[l]+18)%12)-6;return{n:L[l]+acc(d),p:p}})}
+function chords(r,sc,sev){var N=ntes(r,sc),o=[],ix=sev?[0,2,4,6]:[0,2,4];
+for(var i=0;i<7;i++){var tn=ix.map(function(j){return N[(i+j)%7]}),pc=tn.map(function(t){return t.p});
+var a=(pc[1]-pc[0]+12)%12,b=(pc[2]-pc[0]+12)%12;
+var q=a==4&&b==7?'':a==3&&b==7?'m':a==3&&b==6?'dim':'aug',suf=q;
+if(sev){var c=(pc[3]-pc[0]+12)%12;suf=({'|11':'maj7','|10':'7','m|10':'m7','m|11':'m(maj7)','dim|10':'m7b5','dim|9':'dim7','aug|11':'maj7#5','aug|10':'7#5'})[q+'|'+c]||q+'7'}
+var rn=['I','II','III','IV','V','VI','VII'][i];if(q=='m'||q=='dim')rn=rn.toLowerCase();rn+=q=='dim'?'°':q=='aug'?'+':'';
+o.push({name:tn[0].n+suf,rn:rn,pcs:pc,tones:tn.map(function(t){return t.n})})}return o}
+function pchord(s){var m=/^([A-G][#b]?)(maj7|m7b5|m7|dim7|dim|aug|sus2|sus4|add9|6|9|7|min|m|maj)?(?:\/[A-G][#b]?)?$/.exec((s||'').trim());if(!m)return null;
+var q=m[2]||'';if(q=='min')q='m';if(q=='maj')q='';var r=parse(m[1]);
+return{name:s,q:q,rp:r.p,pcs:CQ[q].map(function(i){return(r.p+i)%12})}}
+function fingAll(pc){var key=pc.join(',');if(FC[key])return FC[key];var best={};
+for(var a=0;a<13;a++)for(var b=0;b<13;b++)for(var c=0;c<13;c++)for(var d=0;d<13;d++){
+var f=[a,b,c,d],cov={},ok=true;
+for(var i=0;i<4;i++){var p=(OP[i]+f[i])%12;if(pc.indexOf(p)<0){ok=false;break}cov[p]=1}
+if(!ok||Object.keys(cov).length<pc.length)continue;
+var nz=f.filter(function(x){return x>0}),sp=nz.length?Math.max.apply(0,nz)-Math.min.apply(0,nz):0;
+if(sp>3)continue;
+var mx=Math.max.apply(0,f),s=f[0]+f[1]+f[2]+f[3]+sp*3;
+if(!best[mx]||s<best[mx].s)best[mx]={s:s,f:f}}
+return FC[key]=Object.keys(best).map(Number).sort(function(x,y){return x-y}).map(function(k){return best[k].f}).slice(0,6)}
+function flab(f){var nz=f.filter(function(x){return x>0}),h=f.indexOf(0)>=0;return 'frets '+(h||!nz.length?0:Math.min.apply(0,nz))+'-'+Math.max.apply(0,f)}
+function dia(f,rp){var mx=Math.max.apply(0,f),nz=f.filter(function(x){return x>0}),base=mx<=4?1:Math.min.apply(0,nz),h='';
+for(var i=0;i<5;i++)h+='<line x1="30" x2="120" y1="'+(40+i*24)+'" y2="'+(40+i*24)+'" stroke="var(--border-strong)" stroke-width="'+(i==0&&base==1?3:1)+'"/>';
+for(i=0;i<4;i++){var x=30+i*30;h+='<line x1="'+x+'" x2="'+x+'" y1="40" y2="136" stroke="var(--text-secondary)" stroke-width="1"/>';
+h+='<text x="'+x+'" y="156" text-anchor="middle" font-size="12" fill="var(--text-secondary)">'+SN[i]+'</text>';
+if(f[i]==0)h+='<circle cx="'+x+'" cy="28" r="6" fill="none" stroke="var(--text-primary)" stroke-width="1.5"/>';
+else{var y=40+(f[i]-base+.5)*24,isr=(OP[i]+f[i])%12==rp;h+='<circle cx="'+x+'" cy="'+y+'" r="9" fill="'+(isr?'var(--fill-accent)':'var(--text-primary)')+'"/>'}}
+if(base>1)h+='<text x="6" y="57" font-size="12" fill="var(--text-secondary)">'+base+'fr</text>';
+return '<svg viewBox="0 0 150 164" width="150" role="img" aria-label="Ukulele chord diagram" style="display:block;margin:0 auto;">'+h+'</svg>'}
+function board(N,rp,lo,hi){var h='',st=[9,4,0,7],sn=['A','E','C','G'],of=[440,329.63,261.63,392];
+if(lo>0||hi<12){var x0=lo==0?2:24+lo*25-12,x1=24+hi*25+12;h+='<rect x="'+x0+'" y="14" width="'+(x1-x0)+'" height="116" rx="4" fill="var(--bg-accent-muted)"/>'}
+for(var f=0;f<=12;f++)h+='<line x1="'+(24+f*25)+'" x2="'+(24+f*25)+'" y1="30" y2="114" stroke="var(--border-strong)" stroke-width="'+(f==0?3:1)+'"/>';
+[3,5,7,10,12].forEach(function(f){h+='<text x="'+(24+(f-.5)*25)+'" y="142" text-anchor="middle" font-size="11" fill="var(--text-muted)">'+f+'</text>'});
+for(var s=0;s<4;s++){var y=30+s*28;h+='<line x1="24" x2="324" y1="'+y+'" y2="'+y+'" stroke="var(--text-secondary)" stroke-width="1"/><text x="2" y="'+(y+4)+'" font-size="12" fill="var(--text-secondary)">'+sn[s]+'</text>';
+for(f=lo;f<=hi;f++){var p=(st[s]+f)%12,m=null;N.forEach(function(t){if(t.p==p)m=t});
+if(m){var x=f==0?12:24+(f-.5)*25,r=p==rp,fq=of[s]*Math.pow(2,f/12);
+h+='<g data-a="nt" data-v="'+fq+'" style="cursor:pointer"><circle cx="'+x+'" cy="'+y+'" r="11" fill="'+(r?'var(--fill-accent)':'var(--bg-accent)')+'" stroke="var(--border-accent)" stroke-width=".5"/><text x="'+x+'" y="'+(y+4)+'" text-anchor="middle" font-size="11" fill="'+(r?'var(--on-accent)':'var(--text-accent)')+'">'+m.n+'</text></g>'}}}
+return '<svg viewBox="0 0 340 150" width="100%" role="img" aria-label="Ukulele fretboard" style="display:block;">'+h+'</svg>'}
+function chip(a,v,t,on){return '<button data-a="'+a+'" data-v="'+v+'" style="padding:6px 9px;font-size:13px;'+(on?'background:var(--bg-accent);border-color:var(--border-accent);color:var(--text-accent);':'')+'">'+t+'</button>'}
+function pb(v,t){return '<button data-a="play" data-v="'+v+'" style="font-size:13px;">▶ '+t+'</button>'}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function cof(){var h='';
+keys.forEach(function(k,i){var a=(i/12)*2*Math.PI-Math.PI/2,c=Math.cos(a),s=Math.sin(a),on=i==S.k&&!S.rel,x=170+138*c,y=170+138*s;
+h+='<g data-a="k" data-v="'+i+'" style="cursor:pointer"><circle cx="'+x+'" cy="'+y+'" r="23" fill="'+(on?'var(--fill-accent)':'var(--bg-neutral)')+'" stroke="var(--border)" stroke-width=".5"/><text x="'+x+'" y="'+(y+5)+'" text-anchor="middle" font-size="15" font-weight="500" fill="'+(on?'var(--on-accent)':'var(--text-primary)')+'">'+k+'</text></g>';
+on=i==S.k&&S.rel;x=170+88*c;y=170+88*s;
+h+='<g data-a="km" data-v="'+i+'" style="cursor:pointer"><circle cx="'+x+'" cy="'+y+'" r="20" fill="'+(on?'var(--fill-accent)':'var(--bg-neutral)')+'" stroke="var(--border)" stroke-width=".5"/><text x="'+x+'" y="'+(y+4)+'" text-anchor="middle" font-size="12" fill="'+(on?'var(--on-accent)':'var(--text-secondary)')+'">'+minors[i]+'m</text></g>'});
+$('cof').innerHTML=h}
+function render(){cof();
+var K=S.rel?minors[S.k]:keys[S.k],r=parse(K),bid=S.rel?'minor':'major',base=SC[bid],N0=S.k,iL=(N0+11)%12,iR=(N0+1)%12,sub;
+if(S.rel){var l=minors[iL],v=minors[iR];if(N0==7)l='Eb';if(N0==6)v='A#';
+sub='Relative major: '+keys[N0]+' | '+KS[N0]+'<br>iv is '+l+'m (left), v is '+v+'m (right)'}
+else{var l2=keys[iL],v2=keys[iR];if(N0==7)l2='Gb';if(N0==6)v2='C#';
+sub='Relative minor: '+minors[N0]+'m | '+KS[N0]+'<br>IV is '+l2+' (left), V is '+v2+' (right)'}
+$('sub').innerHTML=sub;
+$('rel').innerHTML=chip('rel',0,keys[N0]+' major',!S.rel)+chip('rel',1,minors[N0]+' minor',S.rel);
+$('tabs').innerHTML=chip('t','c','Chords',S.t=='c')+chip('t','s','Scales',S.t=='s')+chip('t','a','Arpeggios',S.t=='a')+chip('t','b','Borrow',S.t=='b');
+var rowS='display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin-top:8px;';
+$('hint').style.display='';
+var ctl='',nt,chs='',sel=null,note='',mj=ntes(r,base),alt=false;
+var sevc=chip('sev',0,'Triads',!S.sev)+chip('sev',1,'7th chords',S.sev);
+if(S.t=='c'||S.t=='a'){ctl=sevc;nt=mj;var C=chords(r,base,S.sev);
+C.forEach(function(c,i){chs+=chip('d',i,c.rn+'<br>'+c.name,i==S.d)});sel=C[S.d];note=K+(S.rel?' natural minor':' major')+' scale';
+if(S.t=='a')nt=sel.tones.map(function(n,i){return{n:n,p:sel.pcs[i]}})}
+else if(S.t=='s'){Object.keys(SC).forEach(function(m){ctl+=chip('sm',m,SC[m].n,S.sm==m)});nt=ntes(r,SC[S.sm])}
+else{var av=['major','minor','dorian','phrygian','lydian','mixolydian'].filter(function(m){return m!=bid});
+if(av.indexOf(S.bm)<0)S.bm=av[0];
+av.forEach(function(m){ctl+=chip('bm',m,SC[m].n,S.bm==m)});ctl+=sevc;
+nt=ntes(r,SC[S.bm]);alt=true;var M=chords(r,SC[S.bm],S.sev),J=chords(r,base,S.sev);
+M.forEach(function(c,i){var b=c.name!=J[i].name;chs+='<button data-a="d" data-v="'+i+'" style="padding:6px 9px;font-size:13px;'+(b?'background:var(--bg-accent);color:var(--text-accent);':'')+(i==S.d?'border-color:var(--border-accent);border-width:1.5px;':'')+'">'+c.rn+'<br>'+c.name+'</button>'});
+sel=M[S.d];note='Highlighted differs from '+K+(S.rel?' minor':' major')}
+$('ctl').innerHTML=ctl;
+var nh='',rm=60+r.p;
+nt.forEach(function(t,i){var df=alt&&t.p!=mj[i].p,fq=mf(rm+((t.p-r.p+12)%12));
+if(S.t=='a')fq=mf(60+sel.pcs[0]+((t.p-sel.pcs[0]+12)%12));
+nh+='<div data-a="nt" data-v="'+fq+'" style="cursor:pointer;text-align:center;padding:6px 0;border-radius:var(--radius);font-size:14px;'+(df?'background:var(--bg-accent);color:var(--text-accent);':'background:var(--bg-neutral);')+(i==0?'font-weight:500;':'')+'">'+t.n+'</div>'});
+$('notes').style.gridTemplateColumns='repeat('+Math.min(nt.length,7)+',minmax(0,1fr))';$('notes').innerHTML=nh;
+$('chs').innerHTML=chs;$('ps').innerHTML='';
+var ps='',lo=0,hi=12;
+if(S.t=='s'||S.t=='a'){ps=chip('pos',-1,'Whole neck',S.pos<0);POS.forEach(function(p,i){ps+=chip('pos',i,'Pos '+(i+1)+'<br>'+p[0]+'-'+p[1],S.pos==i)});
+if(S.pos>=0){lo=POS[S.pos][0];hi=POS[S.pos][1]}}
+P.f=null;var pr=function(n,rt){return S.pos>=0?runPos(n,lo,hi):runF(n,rt)};
+if(S.t=='s'){P.run=pr(nt,r.p);
+$('out').innerHTML='<div style="font-size:16px;font-weight:500;">'+K+' '+SC[S.sm].n.toLowerCase()+(S.pos>=0?' | position '+(S.pos+1):'')+'</div>'+board(nt,r.p,lo,hi)+'<div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">Top string is A, bottom is G. Blue filled dots are the root. Tap a dot to hear it.</div><div style="'+rowS+'">'+pb('run','Play scale')+'</div>'}
+else if(S.t=='a'){var vs0=fingAll(sel.pcs);P.f=vs0[0];P.run=pr(nt,sel.pcs[0]);
+$('out').innerHTML='<div style="font-size:16px;font-weight:500;">'+sel.name+' arpeggio'+(S.pos>=0?' | position '+(S.pos+1):'')+'</div><div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;">'+sel.tones.join(' ')+'</div>'+board(nt,sel.pcs[0],lo,hi)+'<div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">Tap a dot to hear it.</div><div style="'+rowS+'">'+pb('run','Play arpeggio')+pb('strum','Strum chord')+'</div>'}
+else{var all=fingAll(sel.pcs);if(S.v>=all.length)S.v=0;var f=all[S.v];P.f=f;P.run=runF(nt,r.p);
+var vc='';all.forEach(function(x,i){vc+=chip('v',i,'Shape '+(i+1)+'<br>'+flab(x),i==S.v)});
+$('ps').innerHTML=vc;
+$('out').innerHTML='<div style="font-size:16px;font-weight:500;">'+sel.name+'</div><div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;">'+sel.tones.join(' ')+' | '+note+'</div>'+(f?dia(f,sel.pcs[0])+'<div style="font-size:13px;margin-top:4px;">G C E A: '+f.join(' ')+'</div>':'<div style="font-size:13px;">No shape found.</div>')+'<div style="'+rowS+'">'+pb('strum','Strum')+pb('pluck','Pluck shape')+pb('run',S.t=='b'?'Play mode':'Play scale')+'</div>'}
+if(S.t=='s'||S.t=='a')$('ps').innerHTML=ps;
+}
+function strum(){if(P.f)seq(shapeF(P.f),0.045)}
+document.addEventListener('click',function(e){var el=e.target.closest('[data-a]');if(!el)return;var a=el.getAttribute('data-a'),v=el.getAttribute('data-v');
+if(a=='nt'){seq([+v],0);return}
+if(a=='play'){if(v=='strum')strum();else if(v=='pluck'){if(P.f)seq(shapeF(P.f),0.28)}
+else if(v=='prog'){P.prog.forEach(function(c,i){var pc=pchord(c);if(!pc)return;var fs=fingAll(pc.pcs)[0];if(fs)seq(shapeF(fs),0.045,i*1.2)})}
+else seq(P.run,0.3);return}
+if(a!='v'&&a!='pos'&&a!='sm')S.v=0;
+if(a=='k'){S.k=+v;S.rel=0;S.d=0}else if(a=='km'){S.k=+v;S.rel=1;S.d=0}else if(a=='rel'){S.rel=+v;S.d=0}else if(a=='t'){S.t=v;S.d=0}
+else if(a=='sev')S.sev=+v;else if(a=='sm')S.sm=v;else if(a=='bm'){S.bm=v;S.d=0}else if(a=='d')S.d=+v;
+else if(a=='v')S.v=+v;else if(a=='pos')S.pos=+v;
+render();if(a=='d'||a=='v')strum()});
+render();
+</script></body></html>
