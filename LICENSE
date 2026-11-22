@@ -21,3 +21,10 @@ Human-readable summary:
 https://creativecommons.org/licenses/by-nc/4.0/
 
 The full legal code at the link above is the binding text.
+
+Third-party sounds:
+Instrument sounds are loaded at runtime from the FluidR3_GM soundfont,
+licensed under CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/us/),
+as pre-rendered by the midi-js-soundfonts project
+(https://github.com/gleitz/midi-js-soundfonts). They are not included in
+this repository and are not covered by the license above.

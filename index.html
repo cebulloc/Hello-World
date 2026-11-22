@@ -37,7 +37,8 @@ button:active{transform:scale(0.98);}
 <body>
 <div id="app">
 <h1>Music theory explorer</h1>
-<div id="inst" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px;"></div>
+<div id="inst" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px;"></div>
+<div id="sfst" role="button" tabindex="0" style="font-size:12px;opacity:.65;margin:0 0 12px;cursor:pointer;" onclick="sfToggle()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();sfToggle();}"></div>
 <p class="lead">Pick an instrument, tap a key on the circle, then explore shapes or borrow chords. Works offline.</p>
 <h2 class="sr-only">Choose a key on the circle of fifths, then switch between exploring chords, scales and arpeggios on your instrument, or borrowing chords from parallel modes.</h2>
 <svg id="cof" viewBox="0 0 340 340" width="100%" role="group" aria-label="Circle of fifths for choosing a key" style="display:block;max-width:360px;margin:0 auto;"></svg>
@@ -323,7 +324,74 @@ function schedWind(midi,t,dur){
   o1.start(t);o2.start(t);o1.stop(end);o2.stop(end);
   CUR.push({o:[o1,o2],g:g});
 }
-function sched(midi,t,dur){var k=INST.kind;if(k==='keys')schedKeys(midi,t,dur);else if(k==='wind')schedWind(midi,t,dur);else schedPluck(midi,t,dur);}
+/* ---- realistic sounds: FluidR3_GM samples (CC BY 3.0), loaded on demand, synth fallback ---- */
+var SFMAP={guitar:'acoustic_guitar_steel',uke:'acoustic_guitar_nylon',bari:'acoustic_guitar_nylon',mando:'acoustic_guitar_steel',banjo:'banjo',bass:'electric_bass_finger',piano:'acoustic_grand_piano'};
+var SFWIND=['flute','oboe','clarinet','soprano_sax','alto_sax','tenor_sax','baritone_sax','trumpet','french_horn','trombone','tuba'];
+var SFHOSTS=['https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/','https://raw.githubusercontent.com/gleitz/midi-js-soundfonts/gh-pages/FluidR3_GM/'];
+var SFV={},SFST={},SFON=true,SFCOMP=null;
+try{SFON=localStorage.getItem('mte_sf')!=='off';}catch(e){}
+function sfName(){return INST.kind==='wind'?SFWIND[X.wi]:SFMAP[INST.id];}
+function sfSet(){
+  var e=$('sfst');if(!e)return;var n=sfName(),st=SFST[n];
+  var m=!SFON?'Sound: synth (tap to use real samples)':st==='ready'?'Sound: real samples (tap for synth)':st==='loading'?'Loading real sounds...':st==='fail'?'Sound: synth (samples unavailable, tap to retry)':'Sound: real samples (tap for synth)';
+  e.textContent=m;
+}
+function sfDecode(a,ab){return new Promise(function(res,rej){var p=a.decodeAudioData(ab,res,rej);if(p&&p.catch)p.catch(rej);});}
+function sfFetch(name){
+  var urls=SFHOSTS.map(function(h){return h+name+'-mp3.js';});
+  function net(i){
+    if(i>=urls.length)return Promise.reject(new Error('sf'));
+    return fetch(urls[i],{mode:'cors'}).then(function(r){if(!r.ok)throw new Error('http');return r.clone().text().then(function(t){return {t:t,r:r,u:urls[i]};});}).catch(function(){return net(i+1);});
+  }
+  var C=null;try{C=window.caches?caches.open('mte-sf-1'):null;}catch(e){}
+  if(!C)return net(0).then(function(x){return x.t;});
+  return C.then(function(c){
+    return c.match(urls[0]).then(function(hit){
+      if(hit)return hit.text();
+      return net(0).then(function(x){try{c.put(urls[0],new Response(x.t,{headers:{'Content-Type':'text/plain'}}));}catch(e){}return x.t;});
+    });
+  }).catch(function(){return net(0).then(function(x){return x.t;});});
+}
+function sfLoad(name){
+  if(!SFON||!name||SFST[name]==='ready'||SFST[name]==='loading')return;
+  SFST[name]='loading';sfSet();
+  var a=ac(),re=/"([A-G][b#]?)(\d)":\s*"data:audio\/mp3;base64,([^"]+)"/g,PCI={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+  sfFetch(name).then(function(txt){
+    var items=[],m;
+    while((m=re.exec(txt))){var L=m[1][0],pc=PCI[L]+(m[1][1]==='b'?-1:m[1][1]==='#'?1:0);items.push({midi:12*(parseInt(m[2],10)+1)+pc,b64:m[3]});}
+    if(!items.length)throw new Error('empty');
+    var out={},i=0;
+    function next(){
+      if(i>=items.length){SFV[name]=out;SFST[name]='ready';sfSet();return;}
+      var it=items[i++],bin=atob(it.b64),u=new Uint8Array(bin.length),k;
+      for(k=0;k<bin.length;k++)u[k]=bin.charCodeAt(k);
+      return sfDecode(a,u.buffer).then(function(buf){out[it.midi]=buf;}).catch(function(){}).then(next);
+    }
+    return next();
+  }).catch(function(){SFST[name]='fail';sfSet();});
+}
+function sfBuf(midi){
+  if(!SFON)return null;var n=sfName(),v=SFV[n];
+  if(!v){if(!SFST[n])sfLoad(n);return null;}
+  if(v[midi])return {b:v[midi],r:1};
+  var best=null,bd=99,k;for(k in v){var d=Math.abs(k-midi);if(d<bd){bd=d;best=k;}}
+  return best!==null&&bd<=3?{b:v[best],r:Math.pow(2,(midi-best)/12)}:null;
+}
+function schedSF(h,midi,t,dur){
+  var a=ac(),s=a.createBufferSource(),g=a.createGain(),k=INST.kind,vol=k==='wind'?0.55:(k==='keys'?0.5:0.6);
+  if(!SFCOMP){SFCOMP=a.createDynamicsCompressor();SFCOMP.connect(a.destination);}
+  s.buffer=h.b;s.playbackRate.value=h.r;g.gain.setValueAtTime(vol,t);
+  if(dur){g.gain.setValueAtTime(vol,t+dur);g.gain.setTargetAtTime(0,t+dur,0.09);}
+  s.connect(g);g.connect(SFCOMP);s.start(t);if(dur)s.stop(t+dur+0.7);CUR.push({s:s,g:g});
+}
+function sfToggle(){
+  SFON=!SFON;try{localStorage.setItem('mte_sf',SFON?'on':'off');}catch(e){}
+  stopAll();if(SFON){if(SFST[sfName()]==='fail')SFST[sfName()]=null;sfLoad(sfName());}sfSet();
+}
+function sched(midi,t,dur){
+  var h=sfBuf(midi);if(h){schedSF(h,midi,t,dur);return;}
+  var k=INST.kind;if(k==='keys')schedKeys(midi,t,dur);else if(k==='wind')schedWind(midi,t,dur);else schedPluck(midi,t,dur);
+}
 function playDots(dots,seq){
   if(!dots||!dots.length)return;
   var a=ac();stopAll();var ms=[],seen={},k=INST.kind;
@@ -1005,7 +1073,7 @@ function howEWind(){
 }
 function renderEWind(){
   var info=wInfo(),m=$('e_modes');m.innerHTML='';m.style.gridTemplateColumns='repeat(3,minmax(0,1fr))';
-  WINDS.forEach(function(w,i){mkBtn(m,w.n,X.wi===i,function(){X.wi=i;renderE();renderB();});});
+  WINDS.forEach(function(w,i){mkBtn(m,w.n,X.wi===i,function(){X.wi=i;renderE();renderB();sfSet();sfLoad(sfName());});});
   var nb=$('e_notes');nb.innerHTML='';
   info.names.forEach(function(x,j){
     var s=document.createElement('div');s.textContent=x;
@@ -1102,7 +1170,7 @@ function setInst(id){
   stopAll();tuStop();
   applyInst();tuneStrings();
   X.ch=0;X.sh=0;X.pos=0;X.as=0;X.mode=(INST.bass?'arp':'chord');
-  renderInst();pick(ksel);
+  renderInst();pick(ksel);sfSet();sfLoad(sfName());
 }
 function tuneStrings(){
   var ts=$('t_strs');if(!ts)return;ts.innerHTML='';
@@ -1121,8 +1189,8 @@ function playChordPC(pc,q,t,dur){
   var R=52+((pc-4+12)%12),th=q==='maj'?4:3,fi=q==='dim'?6:7;
   sched(R-12,t,dur);[0,th,fi].forEach(function(x,k3){sched(R+x,t+0.02*(k3+1),dur);});
 }
-applyInst();buildTools();showTab();renderInst();pick(1);
+applyInst();buildTools();showTab();renderInst();pick(1);sfSet();sfLoad(sfName());
 </script>
-<div style="text-align:center;font-size:11px;opacity:.6;padding:12px 8px calc(12px + env(safe-area-inset-bottom))">&copy; 2026 Music Theory Explorer &middot; <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener" style="color:inherit">CC BY-NC 4.0</a> &middot; non-commercial use only</div>
+<div style="text-align:center;font-size:11px;opacity:.6;padding:12px 8px calc(12px + env(safe-area-inset-bottom))">&copy; 2026 Music Theory Explorer &middot; <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener" style="color:inherit">CC BY-NC 4.0</a> &middot; non-commercial use only<br>Sounds: FluidR3_GM soundfont, CC BY 3.0, via the midi-js-soundfonts project</div>
 </body>
 </html>
